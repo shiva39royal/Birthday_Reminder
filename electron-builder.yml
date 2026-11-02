@@ -1,0 +1,28 @@
+appId: com.birthdaybuddy.app
+productName: Birthday Buddy
+copyright: Copyright © 2026 Birthday Buddy
+directories:
+  output: dist
+files:
+  - "out/**/*"
+  - "src/assets/**/*"
+  - "package.json"
+win:
+  icon: src/assets/icons/birthday_buddy.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Birthday Buddy
+  installerIcon: src/assets/icons/birthday_buddy.ico
+  uninstallerIcon: src/assets/icons/birthday_buddy.ico
+  deleteAppDataOnUninstall: false

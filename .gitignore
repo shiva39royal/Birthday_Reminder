@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Production & compilation builds
+out/
+dist/
+
+# Logs & temp files
+*.log
+logs/
+temp/
+.test_data/
+tests/temp_excel/
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.user
