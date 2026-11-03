@@ -45,12 +45,9 @@ describe('ExcelService', () => {
     expect(empSheet?.getCell('C1').value).toContain('Date of Birth');
     expect(empSheet?.getCell('D1').value).toContain('Employee Photo');
 
-    // Check row 2 has serial number 1
+    // Check rows have clean integer serial numbers (1, 2...) for 100% Excel repair immunity
     expect(empSheet?.getCell('A2').value).toBe(1);
-
-    // Check row 3 has dynamic serial formula
-    const row3Formula = empSheet?.getCell('A3').value as any;
-    expect(row3Formula.formula).toContain('IF(B3<>""');
+    expect(empSheet?.getCell('A3').value).toBe(2);
   });
 
   it('parses an uploaded workbook and validates records properly', async () => {

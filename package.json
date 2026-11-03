@@ -6,6 +6,8 @@
   "author": "Birthday Buddy Team",
   "license": "MIT",
   "scripts": {
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron .",
     "dev:main": "node scripts/build-main.js && electron .",
     "build:main": "node scripts/build-main.js",
     "build:renderer": "vite build",

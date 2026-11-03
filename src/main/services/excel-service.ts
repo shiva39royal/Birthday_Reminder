@@ -60,21 +60,14 @@ export class ExcelService {
       to: { row: 1, column: 4 }
     };
 
-    // Populate 100 rows with styling, formula, and alternating colors
+    // Populate 100 rows with styling, clean pre-numbered Sl.No (1-100), and alternating colors
     for (let i = 2; i <= 101; i++) {
       const row = ws.getRow(i);
       row.height = 50; // Spacious for pictures
       const isEven = i % 2 === 0;
 
-      // Formula for serial number: Row 2 has 1, subsequent rows check if name cell is non-empty
-      if (i === 2) {
-        row.getCell(1).value = 1;
-      } else {
-        row.getCell(1).value = {
-          formula: `IF(B${i}<>"",A${i - 1}+1,"")`,
-          result: i - 1
-        } as any;
-      }
+      // Clean integer serial number (1-100) — no complex formulas that trigger Excel recovery warnings
+      row.getCell(1).value = i - 1;
 
       // Placeholder hint for Photo cell
       row.getCell(4).value = 'Insert Photo Here';
