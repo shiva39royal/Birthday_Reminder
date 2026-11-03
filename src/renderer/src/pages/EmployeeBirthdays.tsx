@@ -257,7 +257,6 @@ export const EmployeeBirthdays: React.FC = () => {
                   <th className="py-3 px-4 w-14 text-center">Photo</th>
                   <th className="py-3 px-4">Employee Name</th>
                   <th className="py-3 px-4">Date of Birth</th>
-                  <th className="py-3 px-4">Annual Birthday</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -269,10 +268,6 @@ export const EmployeeBirthdays: React.FC = () => {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric'
-                  });
-                  const annualBday = bdayObj.toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long'
                   });
 
                   return (
@@ -294,12 +289,6 @@ export const EmployeeBirthdays: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 font-bold text-gray-900">{emp.employee_name}</td>
                       <td className="py-3 px-4 text-gray-600 font-mono text-xs">{formattedDob}</td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700">
-                          <span>🎂</span>
-                          <span>{annualBday}</span>
-                        </span>
-                      </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
                           <button

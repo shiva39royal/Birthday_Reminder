@@ -5,7 +5,6 @@ import { EmployeeBirthdays } from './pages/EmployeeBirthdays';
 import { ExcelImportExport } from './pages/ExcelImportExport';
 import { ReminderHistory } from './pages/ReminderHistory';
 import { Settings } from './pages/Settings';
-import { About } from './pages/About';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
@@ -40,7 +39,6 @@ export const App: React.FC = () => {
         {activeTab === 'excel' && <ExcelImportExport />}
         {activeTab === 'history' && <ReminderHistory />}
         {activeTab === 'settings' && <Settings />}
-        {activeTab === 'about' && <About />}
       </main>
     </div>
   );

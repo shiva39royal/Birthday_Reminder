@@ -5,13 +5,12 @@ import {
   FileSpreadsheet,
   History,
   Settings,
-  Info,
   Cake,
   Calendar,
   Database
 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'employees' | 'excel' | 'history' | 'settings' | 'about';
+export type NavTab = 'dashboard' | 'employees' | 'excel' | 'history' | 'settings';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -32,7 +31,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, appVer
     { id: 'excel', label: 'Excel Import / Export', icon: <FileSpreadsheet className="w-5 h-5" /> },
     { id: 'history', label: 'Reminder History', icon: <History className="w-5 h-5" /> },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
-    { id: 'about', label: 'About', icon: <Info className="w-5 h-5" /> },
   ];
 
   return (
