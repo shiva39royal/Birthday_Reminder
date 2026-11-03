@@ -70,10 +70,16 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle('db:seedDemoEmployees', async () => {
-    return seedDemoEmployees();
+    const count = await seedDemoEmployees();
+    // Trigger celebration check for today's loaded birthdays
+    setTimeout(async () => {
+      await reminderService.checkDailyReminders();
+    }, 400);
+    return count;
   });
 
   ipcMain.handle('db:resetAllData', async () => {
+    reminderService.clearSnooze();
     db.resetAllData();
     return true;
   });

@@ -4,6 +4,7 @@ import * as ExcelJS from 'exceljs';
 import { app } from 'electron';
 import { DbManager } from './db-manager';
 import { ImageService } from '../services/image-service';
+import { BirthdayService } from '../services/birthday-service';
 import { AppPaths } from '../utils/paths';
 import log from 'electron-log';
 
@@ -221,7 +222,7 @@ export async function seedDemoEmployees(): Promise<number> {
     const rootExcelPath = path.join(process.cwd(), 'Team_Birthdays.xlsx');
     await generateDemoExcelFile(rootExcelPath);
 
-    const userExcelPath = path.join(AppPaths.getDataDir(), 'Team_Birthdays.xlsx');
+    const userExcelPath = path.join(AppPaths.getUserDataDir(), 'Team_Birthdays.xlsx');
     await generateDemoExcelFile(userExcelPath);
   } catch (err) {
     log.error('Failed to generate Team_Birthdays.xlsx demo file:', err);
@@ -229,10 +230,12 @@ export async function seedDemoEmployees(): Promise<number> {
 
   // Reset today's reminder state so restarting or opening triggers the celebration cleanly!
   try {
-    db.run("DELETE FROM daily_reminder_state WHERE reminder_date = '2026-11-03'");
-    log.info("Reset daily_reminder_state for 2026-11-03 so it will trigger on next launch.");
+    const today = BirthdayService.getInstance().getTodayDate().isoDate;
+    db.resetDateDisplayed(today);
+    db.resetDateDisplayed('2026-11-03');
+    log.info(`Reset daily_reminder_state for ${today} and 2026-11-03 so celebration triggers.`);
   } catch (err) {
-    log.warn('Could not reset daily_reminder_state for 2026-11-03:', err);
+    log.warn('Could not reset daily_reminder_state:', err);
   }
 
   log.info(`Successfully seeded ${count} professional employee records with real portrait headshots!`);
