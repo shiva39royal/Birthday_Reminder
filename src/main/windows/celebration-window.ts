@@ -47,7 +47,7 @@ export class CelebrationWindowManager {
       resizable: true,
       alwaysOnTop: true,
       webPreferences: {
-        preload: path.join(app.getAppPath(), 'out/main/main/preload/celebration-preload.js'),
+        preload: path.join(app.getAppPath(), 'out/main/preload/celebration-preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: false

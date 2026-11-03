@@ -27,7 +27,7 @@ export class MainWindowManager {
       title: 'Birthday Buddy — Team Birthday Reminder',
       icon: iconPath,
       webPreferences: {
-        preload: path.join(app.getAppPath(), 'out/main/main/preload/index.js'),
+        preload: path.join(app.getAppPath(), 'out/main/preload/index.js'),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: false

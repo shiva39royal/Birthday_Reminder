@@ -7,6 +7,8 @@ files:
   - "out/**/*"
   - "src/assets/**/*"
   - "package.json"
+asarUnpack:
+  - "**/*.wasm"
 win:
   icon: src/assets/icons/birthday_buddy.ico
   target:

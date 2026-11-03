@@ -24,16 +24,42 @@ export class DbManager {
   public async initialize(): Promise<void> {
     AppPaths.initialize();
     try {
-      this.SQL = await initSqlJs();
-    } catch (wasmErr) {
-      log.warn('Standard WASM load failed, attempting path resolution:', wasmErr);
       this.SQL = await initSqlJs({
         locateFile: file => {
-          const defaultPath = path.join(__dirname, '../../../node_modules/sql.js/dist', file);
-          if (fs.existsSync(defaultPath)) return defaultPath;
+          // 1. Check next to current bundled index.js
+          const localPath = path.join(__dirname, file);
+          if (fs.existsSync(localPath)) return localPath;
+
+          // 2. Check in app.asar.unpacked
+          const unpackedPath = path.join(__dirname.replace('app.asar', 'app.asar.unpacked'), file);
+          if (fs.existsSync(unpackedPath)) return unpackedPath;
+
+          // 3. Check in out/main
+          const outPath = path.join(process.cwd(), 'out/main', file);
+          if (fs.existsSync(outPath)) return outPath;
+
+          // 3. Check in node_modules/sql.js/dist (for tests/dev)
+          const nmPath = path.join(process.cwd(), 'node_modules/sql.js/dist', file);
+          if (fs.existsSync(nmPath)) return nmPath;
+
+          // 4. Check in app root / out/main (Electron runtime)
+          if (typeof app !== 'undefined' && app?.getAppPath) {
+            const appPath = path.join(app.getAppPath(), 'out/main', file);
+            if (fs.existsSync(appPath)) return appPath;
+          }
+
+          // 5. Check in resourcesPath (for packaged apps)
+          if (typeof process !== 'undefined' && process.resourcesPath) {
+            const resPath = path.join(process.resourcesPath, file);
+            if (fs.existsSync(resPath)) return resPath;
+          }
+
           return file;
         }
       });
+    } catch (wasmErr) {
+      log.warn('Path resolution WASM load failed, fallback:', wasmErr);
+      this.SQL = await initSqlJs();
     }
     const dbPath = AppPaths.getDbPath();
 
