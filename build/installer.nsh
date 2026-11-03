@@ -7,3 +7,4 @@
   DetailPrint "Removing automatic startup shortcut for Birthday Buddy..."
   Delete "$SMSTARTUP\Birthday Buddy.lnk"
 !macroend
+

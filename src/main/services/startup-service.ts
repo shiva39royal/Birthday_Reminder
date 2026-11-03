@@ -63,39 +63,39 @@ export class StartupService {
       }
 
       const execPath = process.execPath;
-      const appArgs = ['--reminder'];
       const shortcutPath = this.getStartupShortcutPath();
 
-      // 1. Configure Electron / Windows Registry login item (HKCU\Software\Microsoft\Windows\CurrentVersion\Run)
+      // 1. Clear any duplicate Registry Run item (openAtLogin = false) so Windows only starts one instance from Startup folder
       try {
         app.setLoginItemSettings({
-          openAtLogin: true,
-          path: execPath,
-          args: appArgs
+          openAtLogin: false
         });
-        log.info('Configured Electron login item settings (openAtLogin = true).');
       } catch (loginErr) {
-        log.warn('Could not set Electron login item settings:', loginErr);
+        log.warn('Could not clear Electron login item:', loginErr);
       }
 
-      // 2. Create Windows Startup folder shortcut (100% reliable for standard Windows user accounts)
+      // 2. Ensure Windows Startup folder shortcut exists (100% reliable for all Windows accounts)
       try {
         const startupDir = path.dirname(shortcutPath);
         if (!fs.existsSync(startupDir)) {
           fs.mkdirSync(startupDir, { recursive: true });
         }
 
-        const psScript = `
-          $WshShell = New-Object -ComObject WScript.Shell
-          $Shortcut = $WshShell.CreateShortcut('${shortcutPath.replace(/'/g, "''")}')
-          $Shortcut.TargetPath = '${execPath.replace(/'/g, "''")}'
-          $Shortcut.Arguments = '--reminder'
-          $Shortcut.WorkingDirectory = '${path.dirname(execPath).replace(/'/g, "''")}'
-          $Shortcut.Description = 'Birthday Buddy Automatic Daily Reminder'
-          $Shortcut.Save()
-        `;
-        await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript.replace(/\r?\n/g, ' ')}"`);
-        log.info('Created Windows Startup folder shortcut at:', shortcutPath);
+        if (!fs.existsSync(shortcutPath)) {
+          const psScript = [
+            `$WshShell = New-Object -ComObject WScript.Shell;`,
+            `$Shortcut = $WshShell.CreateShortcut('${shortcutPath.replace(/'/g, "''")}');`,
+            `$Shortcut.TargetPath = '${execPath.replace(/'/g, "''")}';`,
+            `$Shortcut.Arguments = '--reminder';`,
+            `$Shortcut.WorkingDirectory = '${path.dirname(execPath).replace(/'/g, "''")}';`,
+            `$Shortcut.Description = 'Birthday Buddy Automatic Daily Reminder';`,
+            `$Shortcut.Save();`
+          ].join(' ');
+          await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript}"`);
+          log.info('Created Windows Startup folder shortcut at:', shortcutPath);
+        } else {
+          log.info('Windows Startup folder shortcut already exists at:', shortcutPath);
+        }
       } catch (shortcutErr) {
         log.warn('Could not create Windows Startup folder shortcut:', shortcutErr);
       }

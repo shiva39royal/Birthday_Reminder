@@ -48,8 +48,16 @@ if (!gotTheLock) {
 
   ReminderService.getInstance().setReminderMode(isReminderMode);
 
+  let isWaitingInitialReminder = isReminderMode;
+
   app.on('second-instance', (_event, commandLine) => {
     log.info('Second instance detected with args:', commandLine);
+    // If second instance was started by Windows boot/startup with --reminder, ignore it completely
+    const isReminderLaunch = commandLine.some(arg => arg.includes('--reminder'));
+    if (isReminderLaunch) {
+      log.info('Second instance is a background reminder launch; ignoring duplicate without opening main window.');
+      return;
+    }
     const mainWin = MainWindowManager.getWindow();
     if (mainWin && !mainWin.isDestroyed()) {
       if (mainWin.isMinimized()) mainWin.restore();
@@ -103,6 +111,7 @@ if (!gotTheLock) {
         log.info(`Waiting ${settings.reminder_delay_minutes || 3} minute(s) before checking daily birthdays...`);
         startupTimer = setTimeout(async () => {
           startupTimer = null;
+          isWaitingInitialReminder = false;
           const result = await ReminderService.getInstance().checkDailyReminders();
           if (!result.shouldCelebrate) {
             log.info('No reminders to show. Cleanly exiting background process.');
@@ -146,12 +155,12 @@ if (!gotTheLock) {
   });
 
   app.on('window-all-closed', () => {
-    // Keep process alive ONLY if a 5-minute reminder snooze is actively pending
-    if (ReminderService.getInstance().hasPendingSnooze()) {
-      log.info('All windows closed, but 5-minute reminder snooze is active. Keeping process alive in background.');
+    // Keep process alive if initial reminder delay is waiting OR if a 5-minute reminder snooze is pending
+    if (isWaitingInitialReminder || ReminderService.getInstance().hasPendingSnooze()) {
+      log.info('All windows closed, but background reminder check or 5-minute snooze is active. Keeping process alive.');
       return;
     }
-    log.info('All windows closed and no snooze pending. Exiting cleanly.');
+    log.info('All windows closed and no reminder/snooze active. Exiting cleanly.');
     app.quit();
   });
 }
