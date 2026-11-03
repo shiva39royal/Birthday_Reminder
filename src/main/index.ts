@@ -7,6 +7,7 @@ import { registerIpcHandlers } from './ipc-handlers';
 import { seedDemoEmployees } from './database/seed-data';
 import { ReminderService } from './services/reminder-service';
 import { BirthdayService } from './services/birthday-service';
+import { StartupService } from './services/startup-service';
 import { AppPaths } from './utils/paths';
 import log from 'electron-log';
 
@@ -86,6 +87,16 @@ if (!gotTheLock) {
       } else {
         // Normal GUI launch
         MainWindowManager.create();
+
+        // In packaged mode, ensure Windows startup is registered if enabled in settings
+        if (app.isPackaged) {
+          const settings = db.getSettings();
+          if (settings.start_with_windows !== false) {
+            StartupService.getInstance().enableStartup(settings.reminder_delay_minutes || 3).catch(err => {
+              log.warn('Could not auto-register startup on launch:', err);
+            });
+          }
+        }
 
         // Check if there are unacknowledged birthdays for today and prompt celebration
         setTimeout(async () => {

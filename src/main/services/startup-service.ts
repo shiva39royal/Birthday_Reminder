@@ -51,6 +51,17 @@ export class StartupService {
 
   public async enableStartup(delayMinutes: number = 3): Promise<boolean> {
     try {
+      // In unpackaged/development mode, never register startup to avoid bare electron.exe in Windows Startup
+      if (!app.isPackaged) {
+        log.info('Running in development mode; skipping Windows startup registration to prevent registering electron.exe.');
+        try {
+          app.setLoginItemSettings({ openAtLogin: false });
+        } catch {}
+        const db = DbManager.getInstance();
+        db.updateSettings({ start_with_windows: true, reminder_delay_minutes: delayMinutes });
+        return true;
+      }
+
       const execPath = process.execPath;
       const appArgs = ['--reminder'];
       const shortcutPath = this.getStartupShortcutPath();
