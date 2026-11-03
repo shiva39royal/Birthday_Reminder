@@ -91,5 +91,16 @@ describe('ExcelService', () => {
     expect(preview[2].status).toBe('invalid');
     expect(preview[2].errors.some(e => e.includes('name is required'))).toBe(true);
   });
+
+  it('extracts employee photos and maps them properly when parsing Excel file with photos', async () => {
+    const demoExcelPath = path.join(process.cwd(), 'Team_Birthdays.xlsx');
+    if (fs.existsSync(demoExcelPath)) {
+      const preview = await excelService.parseExcelFile(demoExcelPath);
+      expect(preview.length).toBe(6);
+      // Verify that photos are extracted as base64 data URLs
+      const rowsWithPhotos = preview.filter(r => r.photoBase64 && r.photoBase64.startsWith('data:image/'));
+      expect(rowsWithPhotos.length).toBe(6);
+    }
+  });
 });
 

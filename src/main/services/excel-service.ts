@@ -1,6 +1,7 @@
 import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import * as path from 'path';
+import AdmZip from 'adm-zip';
 import { v4 as uuidv4 } from 'uuid';
 import { DbManager } from '../database/db-manager';
 import { ImageService } from './image-service';
@@ -70,8 +71,8 @@ export class ExcelService {
         row.getCell(1).value = 1;
       } else {
         row.getCell(1).value = {
-          formula: `IF(B${i}<>""; A${i - 1}+1; "")`,
-          date1904: false
+          formula: `IF(B${i}<>"",A${i - 1}+1,"")`,
+          result: i - 1
         } as any;
       }
 
@@ -131,12 +132,11 @@ export class ExcelService {
       { text: '   • Future dates are invalid and will be rejected during import.' },
       { text: '', isBlank: true },
       { text: '3. Employee Photo (Column D):', isHeader: true },
-      { text: '   • To add a photo: Click the cell in Column D for that employee.' },
-      { text: '   • In Excel, click on the "Insert" tab in the top ribbon.' },
-      { text: '   • Click "Pictures" -> "Place in Cell" or "Place over Cells".' },
-      { text: '   • Position or resize the photo to sit inside the matching employee row.' },
+      { text: '   • Click the cell in Column D for that employee.' },
+      { text: '   • Go to Insert > Pictures (Place in Cell or Place over Cells).' },
+      { text: '   • Both "Place in Cell" and "Place over Cells" are fully supported!' },
       { text: '   • Supported formats: JPG, JPEG, PNG.' },
-      { text: '   • Photos are automatically extracted, optimized, and saved locally.' },
+      { text: '   • Photos are automatically extracted, cropped, and displayed.' },
       { text: '', isBlank: true },
       { text: '4. Serial Numbers (Column A):', isHeader: true },
       { text: '   • Serial numbers generate automatically as you fill in employee names.' },
@@ -167,6 +167,221 @@ export class ExcelService {
     return savePath;
   }
 
+  private extractImagesFromWorkbook(
+    workbook: ExcelJS.Workbook,
+    filePath: string,
+    worksheet: ExcelJS.Worksheet
+  ): Map<number, { buffer: Buffer; extension: string }> {
+    const imagesByRow = new Map<number, { buffer: Buffer; extension: string }>();
+
+    // Strategy 1: ExcelJS getImages() parser
+    try {
+      const images = worksheet.getImages();
+      for (const img of images) {
+        const media = workbook.getImage(Number(img.imageId));
+        if (media && media.buffer) {
+          let targetRow: number | null = null;
+
+          if (typeof (img as any).range === 'string') {
+            const match = (img as any).range.match(/\d+/);
+            if (match) targetRow = parseInt(match[0], 10);
+          } else if (img.range?.tl) {
+            const tlRow =
+              (img.range.tl as any).nativeRow !== undefined
+                ? (img.range.tl as any).nativeRow + 1
+                : img.range.tl.row !== undefined
+                ? Math.floor(img.range.tl.row) + 1
+                : null;
+
+            const brRow =
+              (img.range.br as any)?.nativeRow !== undefined
+                ? (img.range.br as any).nativeRow + 1
+                : img.range.br?.row !== undefined
+                ? Math.floor(img.range.br.row) + 1
+                : null;
+
+            if (tlRow !== null && brRow !== null) {
+              targetRow = Math.round((tlRow + brRow) / 2);
+            } else {
+              targetRow = tlRow;
+            }
+          }
+
+          if (targetRow !== null && targetRow >= 2) {
+            const ext = (media.extension || 'jpeg').toLowerCase();
+            const normalizedExt = ext === 'jpg' ? 'jpeg' : ext;
+            imagesByRow.set(targetRow, {
+              buffer: Buffer.from(media.buffer),
+              extension: normalizedExt
+            });
+          }
+        }
+      }
+    } catch (err) {
+      log.warn('ExcelJS getImages() extraction warning:', err);
+    }
+
+    // Strategy 2: Direct Zip parsing via AdmZip
+    // Catches modern Microsoft 365 "Place in Cell" (xl/cellimages.xml) and direct drawing relationships
+    try {
+      if (fs.existsSync(filePath)) {
+        const zip = new AdmZip(filePath);
+        const zipEntries = zip.getEntries();
+        const entryMap = new Map<string, AdmZip.IZipEntry>();
+        for (const entry of zipEntries) {
+          entryMap.set(entry.entryName.toLowerCase(), entry);
+        }
+
+        // 2A: Parse drawing1.xml and drawing1.xml.rels
+        const drawingRelsEntry = entryMap.get('xl/drawings/_rels/drawing1.xml.rels');
+        const drawingEntry = entryMap.get('xl/drawings/drawing1.xml');
+
+        if (drawingEntry && drawingRelsEntry) {
+          const relsXml = drawingRelsEntry.getData().toString('utf8');
+          const drawingXml = drawingEntry.getData().toString('utf8');
+
+          const relMap = new Map<string, string>();
+          const relRegex = /<Relationship[^>]+Id="([^"]+)"[^>]+Target="([^"]+)"/g;
+          let relMatch: RegExpExecArray | null;
+          while ((relMatch = relRegex.exec(relsXml)) !== null) {
+            relMap.set(relMatch[1], relMatch[2].replace(/^(\.\.\/)+/, 'xl/'));
+          }
+
+          const anchorRegex = /<xdr:(twoCellAnchor|oneCellAnchor)[\s\S]*?<\/xdr:(twoCellAnchor|oneCellAnchor)>/g;
+          let anchorMatch: RegExpExecArray | null;
+          while ((anchorMatch = anchorRegex.exec(drawingXml)) !== null) {
+            const anchorBlock = anchorMatch[0];
+            const fromRowMatch = anchorBlock.match(/<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/);
+            const toRowMatch = anchorBlock.match(/<xdr:to>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/);
+            const blipMatch = anchorBlock.match(/<a:blip[^>]+r:embed="([^"]+)"/);
+
+            if (fromRowMatch && blipMatch) {
+              const fromRow = parseInt(fromRowMatch[1], 10) + 1;
+              const toRow = toRowMatch ? parseInt(toRowMatch[1], 10) + 1 : fromRow;
+              const targetRow = Math.round((fromRow + toRow) / 2);
+              const rId = blipMatch[1];
+              const targetPath = relMap.get(rId);
+
+              if (targetRow >= 2 && targetPath && !imagesByRow.has(targetRow)) {
+                const imgEntry = entryMap.get(targetPath.toLowerCase());
+                if (imgEntry) {
+                  const ext = path.extname(targetPath).replace('.', '').toLowerCase() || 'jpeg';
+                  imagesByRow.set(targetRow, {
+                    buffer: imgEntry.getData(),
+                    extension: ext === 'jpg' ? 'jpeg' : ext
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        // 2B: Modern Excel "Place in Cell" support (xl/cellimages.xml)
+        const cellimagesEntry = entryMap.get('xl/cellimages.xml');
+        const cellimagesRelsEntry = entryMap.get('xl/_rels/cellimages.xml.rels');
+
+        if (cellimagesEntry && cellimagesRelsEntry) {
+          const cellXml = cellimagesEntry.getData().toString('utf8');
+          const cellRelsXml = cellimagesRelsEntry.getData().toString('utf8');
+
+          const cellRelMap = new Map<string, string>();
+          const relRegex = /<Relationship[^>]+Id="([^"]+)"[^>]+Target="([^"]+)"/g;
+          let relMatch: RegExpExecArray | null;
+          while ((relMatch = relRegex.exec(cellRelsXml)) !== null) {
+            cellRelMap.set(relMatch[1], relMatch[2].replace(/^(\.\.\/)+/, 'xl/').replace(/^xl\//, 'xl/'));
+          }
+
+          const blipIds: string[] = [];
+          const blipRegex = /<a:blip[^>]+r:embed="([^"]+)"/g;
+          let bMatch: RegExpExecArray | null;
+          while ((bMatch = blipRegex.exec(cellXml)) !== null) {
+            blipIds.push(bMatch[1]);
+          }
+
+          // Try mapping by sheet1.xml formulas (e.g. <c r="D2"><f>_xlfn.DISPIMG(...) or vm=)
+          const sheetEntry = entryMap.get('xl/worksheets/sheet1.xml');
+          let mappedCount = 0;
+          if (sheetEntry) {
+            const sheetXml = sheetEntry.getData().toString('utf8');
+            const cellRegex = /<c\s+r="([A-Z]+)(\d+)"[^>]*>[\s\S]*?(?:DISPIMG|cellImage|vm=)[\s\S]*?<\/c>/g;
+            let cellMatch: RegExpExecArray | null;
+            let idx = 0;
+            while ((cellMatch = cellRegex.exec(sheetXml)) !== null && idx < blipIds.length) {
+              const col = cellMatch[1];
+              const row = parseInt(cellMatch[2], 10);
+              if (col === 'D' && row >= 2 && !imagesByRow.has(row)) {
+                const rId = blipIds[idx++];
+                const targetPath = cellRelMap.get(rId);
+                if (targetPath) {
+                  const imgEntry = entryMap.get(targetPath.toLowerCase());
+                  if (imgEntry) {
+                    const ext = path.extname(targetPath).replace('.', '').toLowerCase() || 'jpeg';
+                    imagesByRow.set(row, {
+                      buffer: imgEntry.getData(),
+                      extension: ext === 'jpg' ? 'jpeg' : ext
+                    });
+                    mappedCount++;
+                  }
+                }
+              }
+            }
+          }
+
+          // Fallback mapping: sequential cell images to rows
+          if (mappedCount === 0 && blipIds.length > 0) {
+            let curRow = 2;
+            for (const rId of blipIds) {
+              while (curRow <= worksheet.rowCount && imagesByRow.has(curRow)) {
+                curRow++;
+              }
+              if (curRow <= worksheet.rowCount) {
+                const targetPath = cellRelMap.get(rId);
+                if (targetPath) {
+                  const imgEntry = entryMap.get(targetPath.toLowerCase());
+                  if (imgEntry) {
+                    const ext = path.extname(targetPath).replace('.', '').toLowerCase() || 'jpeg';
+                    imagesByRow.set(curRow, {
+                      buffer: imgEntry.getData(),
+                      extension: ext === 'jpg' ? 'jpeg' : ext
+                    });
+                  }
+                }
+                curRow++;
+              }
+            }
+          }
+        }
+
+        // 2C: General fallback: If xl/media/ has images but imagesByRow is still empty, map sequentially to rows with employee names
+        const mediaEntries = zipEntries
+          .filter(e => e.entryName.toLowerCase().startsWith('xl/media/'))
+          .sort((a, b) => a.entryName.localeCompare(b.entryName));
+
+        if (mediaEntries.length > 0 && imagesByRow.size === 0) {
+          log.info(`Found ${mediaEntries.length} media images in xl/media/; assigning sequentially to populated rows`);
+          let mIdx = 0;
+          for (let r = 2; r <= worksheet.rowCount && mIdx < mediaEntries.length; r++) {
+            const rowObj = worksheet.getRow(r);
+            const hasName = Boolean(rowObj.getCell(2).value);
+            if (hasName && !imagesByRow.has(r)) {
+              const entry = mediaEntries[mIdx++];
+              const ext = path.extname(entry.entryName).replace('.', '').toLowerCase() || 'jpeg';
+              imagesByRow.set(r, {
+                buffer: entry.getData(),
+                extension: ext === 'jpg' ? 'jpeg' : ext
+              });
+            }
+          }
+        }
+      }
+    } catch (zipErr) {
+      log.warn('Zip extraction for Excel images encountered an issue:', zipErr);
+    }
+
+    log.info(`Extracted total ${imagesByRow.size} image(s) from Excel file`);
+    return imagesByRow;
+  }
+
   public async parseExcelFile(filePath: string): Promise<ImportPreviewRow[]> {
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
@@ -185,26 +400,8 @@ export class ExcelService {
       throw new Error('No worksheets found in the Excel workbook');
     }
 
-    // Extract images and map to row numbers
-    const imagesByRow = new Map<number, { buffer: Buffer; extension: string }>();
-    try {
-      const images = worksheet.getImages();
-      for (const img of images) {
-        const media = workbook.getImage(Number(img.imageId));
-        if (media && media.buffer) {
-          // Native row is 0-indexed; Excel row is nativeRow + 1
-          const rawRow = (img.range?.tl as any)?.nativeRow !== undefined
-            ? (img.range.tl as any).nativeRow + 1
-            : (img.range?.tl?.row !== undefined ? Math.floor(img.range.tl.row) + 1 : null);
-
-          if (rawRow !== null && rawRow >= 2) {
-            imagesByRow.set(rawRow, { buffer: media.buffer as unknown as Buffer, extension: media.extension });
-          }
-        }
-      }
-    } catch (err) {
-      log.warn('Could not extract images using worksheet.getImages():', err);
-    }
+    // Extract images and map to row numbers using multi-strategy extractor
+    const imagesByRow = this.extractImagesFromWorkbook(workbook, filePath, worksheet);
 
     const db = DbManager.getInstance();
     const rows: ImportPreviewRow[] = [];
@@ -257,7 +454,8 @@ export class ExcelService {
       let photoBase64: string | null = null;
       if (hasImage) {
         const imgData = imagesByRow.get(rowNum)!;
-        photoBase64 = `data:image/${imgData.extension};base64,${imgData.buffer.toString('base64')}`;
+        const mimeExt = imgData.extension === 'jpg' ? 'jpeg' : imgData.extension;
+        photoBase64 = `data:image/${mimeExt};base64,${imgData.buffer.toString('base64')}`;
       }
 
       // Check Duplicate
