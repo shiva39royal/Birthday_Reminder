@@ -53,6 +53,20 @@ async function buildMain() {
     console.log('Copied sql-wasm.wasm to out/main/');
   }
 
+  // Copy demo photos to out/main/demo-photos
+  const demoPhotosSrc = path.join(__dirname, '../src/assets/demo-photos');
+  const demoPhotosDest = path.join(outDir, 'demo-photos');
+  if (fs.existsSync(demoPhotosSrc)) {
+    if (!fs.existsSync(demoPhotosDest)) {
+      fs.mkdirSync(demoPhotosDest, { recursive: true });
+    }
+    const files = fs.readdirSync(demoPhotosSrc);
+    for (const f of files) {
+      fs.copyFileSync(path.join(demoPhotosSrc, f), path.join(demoPhotosDest, f));
+    }
+    console.log(`Copied ${files.length} demo photos to out/main/demo-photos`);
+  }
+
   console.log('Main process & preload bundle completed successfully!');
 }
 
