@@ -55,6 +55,10 @@ describe('ReminderService', () => {
     // Check that reminder still wants to celebrate
     const result = await reminderService.checkDailyReminders();
     expect(result.shouldCelebrate).toBe(true);
+
+    // Verify that snooze timer is active
+    expect(reminderService.hasPendingSnooze()).toBe(true);
+    reminderService.clearSnooze();
   });
 
   it('does NOT celebrate if today is already acknowledged', async () => {

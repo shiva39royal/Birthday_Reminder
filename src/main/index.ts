@@ -110,10 +110,12 @@ if (!gotTheLock) {
   });
 
   app.on('window-all-closed', () => {
-    // On Windows, quit app when all windows are closed unless in background reminder check
-    if (!ReminderService.getInstance().getIsReminderMode()) {
-      app.quit();
+    // Keep process alive if a 5-minute reminder snooze is pending or in background reminder mode
+    if (ReminderService.getInstance().hasPendingSnooze() || ReminderService.getInstance().getIsReminderMode()) {
+      log.info('All windows closed, but 5-minute reminder snooze is active. Keeping process alive in background.');
+      return;
     }
+    app.quit();
   });
 }
 

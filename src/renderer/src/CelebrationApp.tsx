@@ -105,7 +105,7 @@ export const CelebrationApp: React.FC = () => {
         <button
           onClick={handleClose}
           className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
-          title="Dismiss Window"
+          title="Close (Will remind again in 5 minutes until you click 'Ok, Thank You!')"
         >
           <X className="w-5 h-5" />
         </button>
@@ -198,7 +198,7 @@ export const CelebrationApp: React.FC = () => {
           <span>Ok, Thank You!</span>
         </button>
         <p className="text-[11px] text-slate-400 text-center">
-          Acknowledges today's celebration. Reminders will stay silent for the remainder of today.
+          Clicking "Ok, Thank You!" records today's celebration as completed. Closing with ✕ will remind again in 5 minutes.
         </p>
       </footer>
     </div>

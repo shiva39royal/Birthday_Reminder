@@ -9,6 +9,8 @@ export class ReminderService {
   private static instance: ReminderService | null = null;
   private isReminderMode = false;
   private onTriggerCelebrationCallback: ((birthdays: BirthdayEmployee[]) => void) | null = null;
+  private snoozeTimer: NodeJS.Timeout | null = null;
+  private snoozeMinutes = 5;
 
   private constructor() {}
 
@@ -25,6 +27,25 @@ export class ReminderService {
 
   public getIsReminderMode(): boolean {
     return this.isReminderMode;
+  }
+
+  public setSnoozeMinutes(min: number): void {
+    this.snoozeMinutes = min;
+  }
+
+  public getSnoozeMinutes(): number {
+    return this.snoozeMinutes;
+  }
+
+  public hasPendingSnooze(): boolean {
+    return this.snoozeTimer !== null;
+  }
+
+  public clearSnooze(): void {
+    if (this.snoozeTimer) {
+      clearTimeout(this.snoozeTimer);
+      this.snoozeTimer = null;
+    }
   }
 
   public onTriggerCelebration(callback: (birthdays: BirthdayEmployee[]) => void): void {
@@ -83,6 +104,7 @@ export class ReminderService {
   }
 
   public acknowledgeTodayReminders(): void {
+    this.clearSnooze();
     const db = DbManager.getInstance();
     const birthdayService = BirthdayService.getInstance();
     const today = birthdayService.getTodayDate().isoDate;
@@ -100,12 +122,47 @@ export class ReminderService {
   }
 
   public handleCelebrationClosedWithoutAck(): void {
-    log.info('Celebration window was closed without explicit acknowledgement.');
-    if (this.isReminderMode) {
-      // In reminder mode, terminate process; reminder remains unacknowledged for next launch
-      log.info('Background reminder mode finished without ack. Quitting.');
-      app.quit();
+    const db = DbManager.getInstance();
+    const birthdayService = BirthdayService.getInstance();
+    const today = birthdayService.getTodayDate().isoDate;
+
+    // If already acknowledged, do nothing
+    if (db.isDateDisplayed(today)) {
+      if (this.isReminderMode) {
+        app.quit();
+      }
+      return;
     }
+
+    log.info(
+      `Celebration window closed without acknowledgement. Snoozing: will remind again in ${this.snoozeMinutes} minute(s) until user clicks "Ok, Thank You!".`
+    );
+
+    this.clearSnooze();
+
+    const delayMs = this.snoozeMinutes * 60 * 1000;
+    this.snoozeTimer = setTimeout(async () => {
+      this.snoozeTimer = null;
+      const curToday = birthdayService.getTodayDate().isoDate;
+
+      // Re-check if acknowledged in the meantime
+      if (db.isDateDisplayed(curToday)) {
+        log.info(`Today (${curToday}) was acknowledged during snooze. Skipping re-trigger.`);
+        if (this.isReminderMode) {
+          app.quit();
+        }
+        return;
+      }
+
+      const birthdays = birthdayService.getTodaysBirthdays();
+      if (birthdays.length > 0) {
+        log.info(`${this.snoozeMinutes}-minute snooze expired. Re-triggering celebration reminder window!`);
+        if (this.onTriggerCelebrationCallback) {
+          this.onTriggerCelebrationCallback(birthdays);
+        }
+      } else if (this.isReminderMode) {
+        app.quit();
+      }
+    }, delayMs);
   }
 }
-
