@@ -26,13 +26,35 @@ describe('ReminderService', () => {
       date_of_birth: '1995-07-14'
     });
 
-    // Reset last processed date
-    db.updateSettings({ last_processed_date: null });
+    // Reset reminder state for test date
+    db.resetDateDisplayed(testDate);
 
     const result = await reminderService.checkDailyReminders();
     expect(result.shouldCelebrate).toBe(true);
     expect(result.birthdays.length).toBeGreaterThan(0);
     expect(result.birthdays.some(b => b.id === 'rem-emp-1')).toBe(true);
+  });
+
+  it('does NOT mark acknowledged when window is closed without acknowledgment', async () => {
+    const testDate = '2026-07-14';
+    birthdayService.setSimulatedDate(testDate);
+    db.resetDateDisplayed(testDate);
+
+    db.createEmployee({
+      id: 'rem-emp-2',
+      employee_name: 'Birthday Star Two',
+      date_of_birth: '1995-07-14'
+    });
+
+    // Simulate closing celebration window without clicking "Ok, Thank You!"
+    reminderService.handleCelebrationClosedWithoutAck();
+
+    // Verify isDateDisplayed remains false
+    expect(db.isDateDisplayed(testDate)).toBe(false);
+
+    // Check that reminder still wants to celebrate
+    const result = await reminderService.checkDailyReminders();
+    expect(result.shouldCelebrate).toBe(true);
   });
 
   it('does NOT celebrate if today is already acknowledged', async () => {
@@ -42,8 +64,10 @@ describe('ReminderService', () => {
     // Mark as acknowledged
     reminderService.acknowledgeTodayReminders();
 
+    // Verify isDateDisplayed is true
+    expect(db.isDateDisplayed(testDate)).toBe(true);
+
     const result = await reminderService.checkDailyReminders();
     expect(result.shouldCelebrate).toBe(false);
   });
 });
-

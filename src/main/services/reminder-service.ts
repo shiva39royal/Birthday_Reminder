@@ -38,7 +38,7 @@ export class ReminderService {
     const today = birthdayService.getTodayDate().isoDate;
 
     // 1. Check if already displayed / acknowledged today in daily_reminder_state
-    if (db.isDateDisplayed(today) || settings.last_processed_date === today) {
+    if (db.isDateDisplayed(today)) {
       log.info(`Daily reminders for ${today} already marked as displayed/acknowledged. Skipping.`);
       return { shouldCelebrate: false, birthdays: [] };
     }

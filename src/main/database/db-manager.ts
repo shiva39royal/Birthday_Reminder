@@ -414,6 +414,17 @@ export class DbManager {
     this.saveToDisk();
   }
 
+  public resetDateDisplayed(date: string): void {
+    if (!this.db) return;
+    this.db.run(`DELETE FROM daily_reminder_state WHERE reminder_date = ?`, [date]);
+    const settings = this.getSettings();
+    if (settings.last_processed_date === date) {
+      this.updateSettings({ last_processed_date: null });
+    }
+    this.markDirty();
+    this.saveToDisk();
+  }
+
   public markRemindersAcknowledged(date: string, employeeCount: number = 0): void {
     if (!this.db) return;
     const now = new Date().toISOString();
