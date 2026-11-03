@@ -49,3 +49,61 @@
   pointer-events: none;
 }
 
+
+/* Flying Parrot and Celebration Animations */
+@keyframes wingFlapLeft {
+  0% {
+    transform: rotate(0deg) scaleY(1);
+  }
+  100% {
+    transform: rotate(-35deg) scaleY(0.75);
+  }
+}
+
+@keyframes wingFlapRight {
+  0% {
+    transform: rotate(0deg) scaleY(1);
+  }
+  100% {
+    transform: rotate(35deg) scaleY(0.75);
+  }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 2.2s ease-in-out infinite;
+}
+
+@keyframes float-wish {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.03);
+  }
+}
+
+.animate-float-wish {
+  animation: float-wish 3.2s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 10s linear infinite;
+}

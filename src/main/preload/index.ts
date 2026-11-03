@@ -11,6 +11,7 @@ const api = {
     ipcRenderer.invoke('db:employees:update', id, data),
   deleteEmployee: (id: string): Promise<boolean> => ipcRenderer.invoke('db:employees:delete', id),
   searchEmployees: (query: string): Promise<Employee[]> => ipcRenderer.invoke('db:employees:search', query),
+  seedDemoEmployees: (): Promise<number> => ipcRenderer.invoke('db:seedDemoEmployees'),
 
   // Birthdays
   getTodayBirthdays: (): Promise<BirthdayEmployee[]> => ipcRenderer.invoke('birthday:today'),

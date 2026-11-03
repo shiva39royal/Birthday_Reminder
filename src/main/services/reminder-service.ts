@@ -37,9 +37,9 @@ export class ReminderService {
     const settings = db.getSettings();
     const today = birthdayService.getTodayDate().isoDate;
 
-    // 1. Check if already acknowledged today
-    if (settings.last_processed_date === today) {
-      log.info(`Daily reminders for ${today} already acknowledged. Skipping.`);
+    // 1. Check if already displayed / acknowledged today in daily_reminder_state
+    if (db.isDateDisplayed(today) || settings.last_processed_date === today) {
+      log.info(`Daily reminders for ${today} already marked as displayed/acknowledged. Skipping.`);
       return { shouldCelebrate: false, birthdays: [] };
     }
 
@@ -52,9 +52,7 @@ export class ReminderService {
     // 3. Find today's birthdays
     const birthdays = birthdayService.getTodaysBirthdays();
     if (birthdays.length === 0) {
-      log.info(`No birthdays found for today (${today}).`);
-      // Update last processed date so we don't repeat checks unnecessarily today
-      db.updateSettings({ last_processed_date: today });
+      log.info(`No birthdays found for today (${today}). Remaining silent; is_displayed remains false.`);
       return { shouldCelebrate: false, birthdays: [] };
     }
 
@@ -88,9 +86,10 @@ export class ReminderService {
     const db = DbManager.getInstance();
     const birthdayService = BirthdayService.getInstance();
     const today = birthdayService.getTodayDate().isoDate;
+    const birthdays = birthdayService.getTodaysBirthdays();
 
-    db.markRemindersAcknowledged(today);
-    log.info(`Acknowledged reminders for ${today}`);
+    db.markRemindersAcknowledged(today, birthdays.length);
+    log.info(`Acknowledged reminders for ${today}. Marked is_displayed = true.`);
 
     if (this.isReminderMode) {
       log.info('Reminder acknowledged in background mode. Quitting application.');

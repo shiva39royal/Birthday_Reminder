@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Cake, Sparkles, Heart, Check, X } from 'lucide-react';
 import { BirthdayEmployee, ApplicationSettings } from '../../shared/types';
+import { FlyingParrot } from './components/celebration/FlyingParrot';
+import { SideBirthdayBlasts } from './components/celebration/SideBirthdayBlasts';
 
 export const CelebrationApp: React.FC = () => {
   const [birthdays, setBirthdays] = useState<BirthdayEmployee[]>([]);
@@ -9,23 +10,27 @@ export const CelebrationApp: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    window.celebrationAPI.getCelebrationData().then(data => {
-      setBirthdays(data.birthdays || []);
-      setSettings(data.settings);
-      setLoading(false);
+    if (window.celebrationAPI) {
+      window.celebrationAPI.getCelebrationData().then(data => {
+        setBirthdays(data.birthdays || []);
+        setSettings(data.settings);
+        setLoading(false);
 
-      // Trigger Confetti if enabled in settings
-      if (data.settings?.confetti_enabled !== false) {
-        launchConfetti();
-      }
-    }).catch(console.error);
+        if (data.settings?.confetti_enabled !== false) {
+          launchConfetti();
+        }
+      }).catch(err => {
+        console.error('Failed to load celebration data:', err);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const launchConfetti = () => {
-    const count = 200;
-    const defaults = {
-      origin: { y: 0.7 }
-    };
+    const count = 180;
+    const defaults = { origin: { y: 0.7 } };
 
     function fire(particleRatio: number, opts: confetti.Options) {
       confetti({
@@ -35,162 +40,153 @@ export const CelebrationApp: React.FC = () => {
       });
     }
 
-    fire(0.25, {
-      spread: 26,
-      startVelocity: 55,
-      colors: ['#a855f7', '#ec4899', '#f59e0b']
-    });
-    fire(0.2, {
-      spread: 60,
-      colors: ['#3b82f6', '#10b981', '#f43f5e']
-    });
-    fire(0.35, {
-      spread: 100,
-      decay: 0.91,
-      scalar: 0.8
-    });
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 25,
-      decay: 0.92,
-      scalar: 1.2
-    });
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 45
-    });
+    fire(0.25, { spread: 26, startVelocity: 55, colors: ['#a855f7', '#ec4899', '#f59e0b'] });
+    fire(0.2, { spread: 60, colors: ['#3b82f6', '#10b981', '#f43f5e'] });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
   };
 
   const handleAcknowledge = async () => {
     try {
-      await window.celebrationAPI.acknowledge();
+      if (window.celebrationAPI) {
+        await window.celebrationAPI.acknowledge();
+      }
     } catch (err) {
       console.error('Failed to acknowledge reminder:', err);
     }
   };
 
   const handleClose = () => {
-    window.celebrationAPI.closeWindow();
+    if (window.celebrationAPI) {
+      window.celebrationAPI.closeWindow();
+    }
   };
 
   const greetingMessage =
-    settings?.greeting_message || 'May your day be filled with happiness, success and wonderful memories!';
+    settings?.greeting_message || 'May your day be filled with joy, happiness, success, and wonderful memories!';
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-purple-950 via-indigo-950 to-slate-950 text-white flex flex-col justify-between p-6 sm:p-8 overflow-hidden select-none">
-      {/* Floating Balloons Background (if enabled) */}
-      {settings?.balloons_enabled !== false && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="floating-balloon text-5xl left-[10%] [animation-delay:0s]">🎈</div>
-          <div className="floating-balloon text-6xl left-[25%] [animation-delay:3s]">🎈</div>
-          <div className="floating-balloon text-4xl left-[45%] [animation-delay:1.5s]">🎈</div>
-          <div className="floating-balloon text-6xl left-[65%] [animation-delay:4.5s]">🎈</div>
-          <div className="floating-balloon text-5xl left-[85%] [animation-delay:2s]">🎈</div>
-        </div>
-      )}
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-purple-950 via-indigo-950 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none">
+      {/* Side Birthday Blasts & Wishes */}
+      <SideBirthdayBlasts />
 
-      {/* Top Bar with Close X */}
-      <div className="relative z-10 flex items-center justify-between">
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-300">
-          <Sparkles className="w-4 h-4 animate-spin text-amber-400" />
-          <span>Birthday Alert Notification</span>
-        </div>
+      {/* Close button in top-right corner */}
+      <div className="absolute top-4 right-4 z-40">
         <button
           onClick={handleClose}
-          className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-          title="Close (will remind again on next launch)"
+          className="text-white/60 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all text-sm font-semibold flex items-center gap-1.5 cursor-pointer"
+          title="Dismiss Window"
         >
-          <X className="w-5 h-5" />
+          <span className="text-xl">✕</span>
         </button>
       </div>
 
-      {/* Main Banner Heading */}
-      <div className="relative z-10 text-center space-y-2 my-auto py-4">
-        <div className="inline-block animate-bounce-gentle">
-          <span className="text-4xl">🎂</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-amber-200 via-pink-300 to-purple-200 bg-clip-text text-transparent drop-shadow-md">
-          🎉 TODAY IS A SPECIAL DAY! 🎂
-        </h1>
-        <p className="text-purple-200 font-semibold text-sm sm:text-base max-w-md mx-auto">
-          Let's celebrate our awesome team members today!
-        </p>
+      {/* Top Section: Flying Parrot Mascot Announcement */}
+      <div className="relative z-30 pt-1 pb-2">
+        <FlyingParrot />
+      </div>
 
-        {/* Birthday Employee Cards */}
-        <div className="pt-6 pb-4 max-w-4xl mx-auto w-full">
-          {birthdays.length > 0 ? (
+      {/* Center Stage: Birthday Employee Cards */}
+      <main className="relative z-20 flex-1 w-full max-w-5xl mx-auto flex flex-col items-center justify-center my-auto px-4">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-purple-200">Preparing celebration...</p>
+          </div>
+        ) : birthdays.length > 0 ? (
+          <div className="w-full flex flex-col items-center">
+            {/* Header Badge */}
+            <div className="mb-4 text-center">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/20 border border-pink-400/30 text-pink-200 text-xs font-bold uppercase tracking-wider shadow-sm">
+                🎉 Honoring Today's Birthday Stars 🎉
+              </span>
+            </div>
+
+            {/* Cards Grid */}
             <div
-              className={`grid gap-4 ${
+              className={`w-full grid gap-6 items-stretch justify-center max-h-[50vh] overflow-y-auto px-2 py-2 ${
                 birthdays.length === 1
-                  ? 'grid-cols-1 max-w-md mx-auto'
+                  ? 'grid-cols-1 max-w-sm'
                   : birthdays.length === 2
-                  ? 'grid-cols-1 sm:grid-cols-2'
-                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                  ? 'grid-cols-1 md:grid-cols-2 max-w-2xl'
+                  : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-5xl'
               }`}
             >
-              {birthdays.map(emp => (
+              {birthdays.map((emp) => (
                 <div
                   key={emp.id}
-                  className="rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 p-6 text-center space-y-4 shadow-2xl relative overflow-hidden group hover:scale-[1.02] transition-transform"
+                  className="relative group bg-white/10 hover:bg-white/15 backdrop-blur-xl border border-white/20 rounded-3xl p-6 flex flex-col items-center text-center shadow-2xl transition-all duration-300 hover:scale-105 hover:border-pink-400/50"
                 >
-                  {/* Glowing ambient ring */}
-                  <div className="absolute -top-10 -right-10 w-28 h-28 bg-pink-500/20 rounded-full blur-2xl"></div>
+                  {/* Star Badge */}
+                  <div className="absolute -top-3 right-5 bg-gradient-to-r from-amber-400 to-pink-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">
+                    Birthday Star ⭐
+                  </div>
 
-                  {/* Photo Avatar */}
-                  <div className="relative mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-400 shadow-xl shadow-purple-500/30">
-                    <div className="w-full h-full rounded-full bg-purple-900 overflow-hidden flex items-center justify-center">
+                  {/* Photo or Initials */}
+                  <div className="relative w-28 h-28 mb-3">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-amber-400 animate-spin-slow blur-xs" />
+                    <div className="relative w-full h-full rounded-full p-1 bg-gradient-to-tr from-pink-500 to-amber-400 shadow-xl overflow-hidden flex items-center justify-center">
                       {emp.photoUrl ? (
                         <img
                           src={emp.photoUrl}
                           alt={emp.employee_name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover rounded-full"
                         />
                       ) : (
-                        <span className="font-black text-2xl text-amber-300">
-                          {emp.employee_name.charAt(0).toUpperCase()}
-                        </span>
+                        <div className="w-full h-full rounded-full bg-indigo-900 flex items-center justify-center text-3xl font-extrabold text-pink-300">
+                          {emp.employee_name.charAt(0)}
+                        </div>
                       )}
                     </div>
-                    <span className="absolute bottom-0 right-0 text-xl bg-purple-900 rounded-full p-0.5 border border-amber-400">
-                      🎂
-                    </span>
                   </div>
 
-                  {/* Name & Greeting */}
-                  <div className="space-y-1">
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-gray-950 font-black text-[10px] uppercase tracking-wider inline-block">
-                      Happy Birthday!
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-black text-white">{emp.employee_name}</h3>
-                    <p className="text-xs text-purple-200 italic px-2">
+                  {/* Employee Info */}
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-pink-200 transition-colors">
+                    {emp.employee_name}
+                  </h3>
+                  {emp.age !== undefined && emp.age > 0 && (
+                    <p className="text-xs font-semibold text-amber-300 uppercase tracking-wider mb-2">
+                      Turning {emp.age} Today!
+                    </p>
+                  )}
+
+                  {/* Greeting Text */}
+                  <div className="mt-auto w-full pt-3 border-t border-white/10">
+                    <p className="text-xs italic text-purple-200/90 font-medium">
                       "{greetingMessage}"
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="p-8 rounded-3xl bg-white/10 text-center">
-              <p className="text-purple-200">No birthdays recorded for today.</p>
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
+        ) : (
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl max-w-md">
+            <div className="text-5xl mb-3 animate-bounce">🎈</div>
+            <h2 className="text-2xl font-bold mb-2">No Birthdays Today</h2>
+            <p className="text-sm text-purple-200/80">
+              Everyone is hard at work! Check back tomorrow or seed sample records in Settings.
+            </p>
+          </div>
+        )}
+      </main>
 
-      {/* Prominent Acknowledgement Button */}
-      <div className="relative z-10 text-center pt-2">
+      {/* Bottom Action Footer with User-Requested "Ok, Thank You!" Button */}
+      <footer className="relative z-30 w-full max-w-2xl mx-auto flex flex-col items-center gap-2 pb-2">
         <button
           onClick={handleAcknowledge}
-          className="inline-flex items-center space-x-2.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-extrabold px-8 py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 transition-all transform active:scale-95 text-base cursor-pointer"
+          className="group relative inline-flex items-center justify-center px-10 py-3.5 font-bold text-lg text-white transition-all duration-300 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl shadow-xl shadow-teal-500/30 hover:scale-105 hover:shadow-teal-400/50 active:scale-95 border border-white/30 cursor-pointer"
         >
-          <Check className="w-5 h-5 stroke-[3]" />
-          <span>Okay, Thanks for the Reminder!</span>
+          <span className="mr-3 text-2xl group-hover:rotate-12 transition-transform">✅</span>
+          <span>Ok, Thank You!</span>
         </button>
-        <p className="text-[11px] text-purple-300/70 mt-2 font-medium">
-          Acknowledging will dismiss today's alert and prevent repeated popups.
+        <p className="text-[11px] text-purple-200/60 text-center">
+          Clicking "Ok, Thank You!" records today's celebration as completed and closes the reminder.
         </p>
-      </div>
+      </footer>
     </div>
   );
 };
 
+export default CelebrationApp;

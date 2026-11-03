@@ -4,6 +4,7 @@ import { DbManager } from './database/db-manager';
 import { MainWindowManager } from './windows/main-window';
 import { CelebrationWindowManager } from './windows/celebration-window';
 import { registerIpcHandlers } from './ipc-handlers';
+import { seedDemoEmployees } from './database/seed-data';
 import { ReminderService } from './services/reminder-service';
 import { BirthdayService } from './services/birthday-service';
 import { AppPaths } from './utils/paths';
@@ -61,6 +62,12 @@ if (!gotTheLock) {
       await db.initialize();
       registerIpcHandlers();
 
+      // Auto-seed sample employees if DB is currently empty
+      if (db.getAllEmployees().length === 0) {
+        log.info('Database has 0 employees. Auto-seeding 6 sample employees with photos...');
+        await seedDemoEmployees();
+      }
+
       // Configure celebration callback
       ReminderService.getInstance().onTriggerCelebration(birthdays => {
         CelebrationWindowManager.create(birthdays);
@@ -69,9 +76,9 @@ if (!gotTheLock) {
       if (isReminderMode) {
         log.info('Started in background reminder mode.');
         const settings = db.getSettings();
-        const delayMs = (settings.reminder_delay_minutes || 5) * 60 * 1000;
+        const delayMs = (settings.reminder_delay_minutes || 3) * 60 * 1000;
 
-        log.info(`Waiting ${settings.reminder_delay_minutes || 5} minute(s) before checking daily birthdays...`);
+        log.info(`Waiting ${settings.reminder_delay_minutes || 3} minute(s) before checking daily birthdays...`);
         setTimeout(async () => {
           const result = await ReminderService.getInstance().checkDailyReminders();
           if (!result.shouldCelebrate) {

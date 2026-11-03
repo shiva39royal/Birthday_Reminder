@@ -45,6 +45,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
     window.birthdayBuddyAPI.triggerCelebrationTest();
   };
 
+  const handleSeedDemo = async () => {
+    try {
+      setLoading(true);
+      await window.birthdayBuddyAPI.seedDemoEmployees();
+      await loadData();
+    } catch (err) {
+      console.error('Failed to seed demo employees:', err);
+      setLoading(false);
+    }
+  };
+
   const formatDateDisplay = (isoStr: string) => {
     if (!isoStr) return '';
     const [y, m, d] = isoStr.split('-').map(Number);
@@ -68,10 +79,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
             Track employee birthdays effortlessly, download templates, and get automatic daily celebration notifications.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleSeedDemo}
+            className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 text-white font-bold px-4 py-2.5 rounded-2xl shadow-md backdrop-blur-sm transition-all transform active:scale-95 text-sm cursor-pointer"
+            title="Load 6 demo employees with portrait photos and today's birthdays"
+          >
+            <Users className="w-4 h-4 text-pink-200" />
+            <span>Load 6 Demo Records</span>
+          </button>
           <button
             onClick={handleOpenCelebration}
-            className="flex items-center space-x-2 bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-4 py-2.5 rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-95 text-sm"
+            className="flex items-center space-x-2 bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-4 py-2.5 rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-95 text-sm cursor-pointer"
           >
             <PartyPopper className="w-4 h-4" />
             <span>Test Celebration Window</span>
@@ -173,6 +192,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
               You're all caught up for today! When team members have birthdays, they will proudly appear right here.
             </p>
+            {stats.totalEmployees === 0 && (
+              <div className="pt-2">
+                <button
+                  onClick={handleSeedDemo}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-2xl text-xs shadow-md transition-all cursor-pointer inline-flex items-center space-x-1.5"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Seed 6 Demo Employees (with Today's Birthdays & Photos)</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

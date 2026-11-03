@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Folder,
-  PartyPopper
+  PartyPopper,
+  Users
 } from 'lucide-react';
 import { ApplicationSettings, AppInfo } from '../../../shared/types';
 
@@ -83,6 +84,17 @@ export const Settings: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to create backup:', err);
+    }
+  };
+
+  const handleSeedDemo = async () => {
+    try {
+      const count = await window.birthdayBuddyAPI.seedDemoEmployees();
+      showToast(`Seeded ${count} demo employees successfully!`);
+      loadData();
+    } catch (err) {
+      console.error('Failed to seed demo employees:', err);
+      showToast('Failed to seed demo employees.');
     }
   };
 
@@ -361,18 +373,18 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onClick={handleBackup}
-            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-md transition-all"
+            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-md transition-all cursor-pointer"
           >
             <Archive className="w-4 h-4 text-emerald-400" />
-            <span>Create Full Backup (ZIP)</span>
+            <span>Create Backup (ZIP)</span>
           </button>
 
           <button
             onClick={handleRestore}
-            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs transition-all"
+            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs transition-all cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 text-purple-600" />
             <span>Restore from ZIP...</span>
@@ -380,10 +392,19 @@ export const Settings: React.FC = () => {
 
           <button
             onClick={handleExportEmployees}
-            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs transition-all"
+            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs transition-all cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4 text-purple-600" />
             <span>Export Employees (.xlsx)</span>
+          </button>
+
+          <button
+            onClick={handleSeedDemo}
+            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs transition-all cursor-pointer"
+            title="Seed 6 demo employees with portrait photos and today's birthdays"
+          >
+            <Users className="w-4 h-4 text-amber-600" />
+            <span>Seed 6 Demo Records</span>
           </button>
         </div>
       </div>

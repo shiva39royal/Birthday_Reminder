@@ -25,10 +25,17 @@ CREATE TABLE IF NOT EXISTS reminder_history (
 CREATE INDEX IF NOT EXISTS idx_reminder_date ON reminder_history (reminder_date);
 CREATE INDEX IF NOT EXISTS idx_reminder_emp_id ON reminder_history (employee_id);
 
+CREATE TABLE IF NOT EXISTS daily_reminder_state (
+    reminder_date TEXT PRIMARY KEY,
+    is_displayed INTEGER NOT NULL DEFAULT 0,
+    displayed_at TEXT,
+    employee_count INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS application_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     start_with_windows INTEGER NOT NULL DEFAULT 0,
-    reminder_delay_minutes INTEGER NOT NULL DEFAULT 5,
+    reminder_delay_minutes INTEGER NOT NULL DEFAULT 3,
     show_birthday_animations INTEGER NOT NULL DEFAULT 1,
     confetti_enabled INTEGER NOT NULL DEFAULT 1,
     balloons_enabled INTEGER NOT NULL DEFAULT 1,
@@ -44,6 +51,5 @@ INSERT OR IGNORE INTO application_settings (
     confetti_enabled, balloons_enabled, show_employee_photos, last_processed_date,
     notification_enabled, feb29_policy, greeting_message
 ) VALUES (
-    1, 0, 5, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
+    1, 0, 3, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
 );
-

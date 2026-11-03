@@ -9,6 +9,7 @@ import { ReminderService } from './services/reminder-service';
 import { StartupService } from './services/startup-service';
 import { BackupService } from './services/backup-service';
 import { CelebrationWindowManager } from './windows/celebration-window';
+import { seedDemoEmployees } from './database/seed-data';
 import { AppPaths } from './utils/paths';
 import log from 'electron-log';
 
@@ -66,6 +67,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('db:employees:search', async (_event, query: string) => {
     return db.searchEmployees(query);
+  });
+
+  ipcMain.handle('db:seedDemoEmployees', async () => {
+    return seedDemoEmployees();
   });
 
   // --- Birthdays ---

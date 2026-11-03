@@ -116,10 +116,19 @@ export class DbManager {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_reminder_emp_id ON reminder_history (employee_id);`);
 
     this.db.run(`
+      CREATE TABLE IF NOT EXISTS daily_reminder_state (
+        reminder_date TEXT PRIMARY KEY,
+        is_displayed INTEGER NOT NULL DEFAULT 0,
+        displayed_at TEXT,
+        employee_count INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS application_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         start_with_windows INTEGER NOT NULL DEFAULT 0,
-        reminder_delay_minutes INTEGER NOT NULL DEFAULT 5,
+        reminder_delay_minutes INTEGER NOT NULL DEFAULT 3,
         show_birthday_animations INTEGER NOT NULL DEFAULT 1,
         confetti_enabled INTEGER NOT NULL DEFAULT 1,
         balloons_enabled INTEGER NOT NULL DEFAULT 1,
@@ -137,7 +146,7 @@ export class DbManager {
         confetti_enabled, balloons_enabled, show_employee_photos, last_processed_date,
         notification_enabled, feb29_policy, greeting_message
       ) VALUES (
-        1, 0, 5, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
+        1, 0, 3, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
       );
     `);
 
@@ -378,16 +387,41 @@ export class DbManager {
     this.markDirty();
   }
 
-  public markRemindersAcknowledged(date: string): void {
+  public isDateDisplayed(date: string): boolean {
+    if (!this.db) return false;
+    const stmt = this.db.prepare('SELECT is_displayed FROM daily_reminder_state WHERE reminder_date = ?');
+    stmt.bind([date]);
+    let displayed = false;
+    if (stmt.step()) {
+      const row = stmt.getAsObject() as unknown as { is_displayed: number };
+      displayed = row.is_displayed === 1;
+    }
+    stmt.free();
+    return displayed;
+  }
+
+  public markDateDisplayed(date: string, employeeCount: number = 0): void {
+    if (!this.db) return;
+    const now = new Date().toISOString();
+    this.db.run(
+      `INSERT INTO daily_reminder_state (reminder_date, is_displayed, displayed_at, employee_count)
+       VALUES (?, 1, ?, ?)
+       ON CONFLICT(reminder_date) DO UPDATE SET is_displayed = 1, displayed_at = ?, employee_count = ?`,
+      [date, now, employeeCount, now, employeeCount]
+    );
+    this.updateSettings({ last_processed_date: date });
+    this.markDirty();
+    this.saveToDisk();
+  }
+
+  public markRemindersAcknowledged(date: string, employeeCount: number = 0): void {
     if (!this.db) return;
     const now = new Date().toISOString();
     this.db.run(
       `UPDATE reminder_history SET acknowledged_at = ? WHERE reminder_date = ? AND acknowledged_at IS NULL`,
       [now, date]
     );
-    this.updateSettings({ last_processed_date: date });
-    this.markDirty();
-    this.saveToDisk();
+    this.markDateDisplayed(date, employeeCount);
   }
 
   public getReminderHistory(options?: { date?: string; search?: string }): ReminderHistoryRecord[] {
