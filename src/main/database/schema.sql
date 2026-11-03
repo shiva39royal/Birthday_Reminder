@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS daily_reminder_state (
 
 CREATE TABLE IF NOT EXISTS application_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    start_with_windows INTEGER NOT NULL DEFAULT 0,
+    start_with_windows INTEGER NOT NULL DEFAULT 1,
     reminder_delay_minutes INTEGER NOT NULL DEFAULT 3,
     show_birthday_animations INTEGER NOT NULL DEFAULT 1,
     confetti_enabled INTEGER NOT NULL DEFAULT 1,
@@ -51,5 +51,5 @@ INSERT OR IGNORE INTO application_settings (
     confetti_enabled, balloons_enabled, show_employee_photos, last_processed_date,
     notification_enabled, feb29_policy, greeting_message
 ) VALUES (
-    1, 0, 3, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
+    1, 1, 3, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
 );

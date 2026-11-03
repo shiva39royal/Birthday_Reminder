@@ -71,13 +71,38 @@ if (!gotTheLock) {
         CelebrationWindowManager.create(birthdays);
       });
 
+      let startupTimer: NodeJS.Timeout | null = null;
+
+      // Handle clean, instant exit when Windows is shutting down, restarting, or logging off.
+      // This completely eliminates any "A background app is running" shutdown warning.
+      const handleCleanShutdown = () => {
+        log.info('System shutdown/logoff signal received. Clearing timers and cleanly exiting immediately.');
+        if (startupTimer) {
+          clearTimeout(startupTimer);
+          startupTimer = null;
+        }
+        ReminderService.getInstance().clearSnooze();
+        app.exit(0);
+      };
+
+      powerMonitor.on('shutdown', handleCleanShutdown);
+      app.on('session-end', handleCleanShutdown);
+      app.on('before-quit', () => {
+        if (startupTimer) {
+          clearTimeout(startupTimer);
+          startupTimer = null;
+        }
+        ReminderService.getInstance().clearSnooze();
+      });
+
       if (isReminderMode) {
         log.info('Started in background reminder mode.');
         const settings = db.getSettings();
         const delayMs = (settings.reminder_delay_minutes || 3) * 60 * 1000;
 
         log.info(`Waiting ${settings.reminder_delay_minutes || 3} minute(s) before checking daily birthdays...`);
-        setTimeout(async () => {
+        startupTimer = setTimeout(async () => {
+          startupTimer = null;
           const result = await ReminderService.getInstance().checkDailyReminders();
           if (!result.shouldCelebrate) {
             log.info('No reminders to show. Cleanly exiting background process.');
@@ -121,11 +146,12 @@ if (!gotTheLock) {
   });
 
   app.on('window-all-closed', () => {
-    // Keep process alive if a 5-minute reminder snooze is pending or in background reminder mode
-    if (ReminderService.getInstance().hasPendingSnooze() || ReminderService.getInstance().getIsReminderMode()) {
+    // Keep process alive ONLY if a 5-minute reminder snooze is actively pending
+    if (ReminderService.getInstance().hasPendingSnooze()) {
       log.info('All windows closed, but 5-minute reminder snooze is active. Keeping process alive in background.');
       return;
     }
+    log.info('All windows closed and no snooze pending. Exiting cleanly.');
     app.quit();
   });
 }

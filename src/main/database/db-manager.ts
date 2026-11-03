@@ -127,7 +127,7 @@ export class DbManager {
     this.db.run(`
       CREATE TABLE IF NOT EXISTS application_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
-        start_with_windows INTEGER NOT NULL DEFAULT 0,
+        start_with_windows INTEGER NOT NULL DEFAULT 1,
         reminder_delay_minutes INTEGER NOT NULL DEFAULT 3,
         show_birthday_animations INTEGER NOT NULL DEFAULT 1,
         confetti_enabled INTEGER NOT NULL DEFAULT 1,
@@ -146,9 +146,14 @@ export class DbManager {
         confetti_enabled, balloons_enabled, show_employee_photos, last_processed_date,
         notification_enabled, feb29_policy, greeting_message
       ) VALUES (
-        1, 0, 3, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
+        1, 1, 3, 1, 1, 1, 1, NULL, 1, 'feb28', 'May your day be filled with happiness, success and wonderful memories!'
       );
     `);
+
+    // Migration: ensure start_with_windows defaults to 1 for installed experience
+    try {
+      this.db.run(`UPDATE application_settings SET start_with_windows = 1 WHERE id = 1 AND start_with_windows = 0;`);
+    } catch {}
 
     this.markDirty();
   }
@@ -292,8 +297,8 @@ export class DbManager {
   public getSettings(): ApplicationSettings {
     if (!this.db) {
       return {
-        start_with_windows: false,
-        reminder_delay_minutes: 5,
+        start_with_windows: true,
+        reminder_delay_minutes: 3,
         show_birthday_animations: true,
         confetti_enabled: true,
         balloons_enabled: true,
@@ -312,7 +317,7 @@ export class DbManager {
       res = {
         id: row.id,
         start_with_windows: Boolean(row.start_with_windows),
-        reminder_delay_minutes: Number(row.reminder_delay_minutes) || 5,
+        reminder_delay_minutes: Number(row.reminder_delay_minutes) || 3,
         show_birthday_animations: Boolean(row.show_birthday_animations),
         confetti_enabled: Boolean(row.confetti_enabled),
         balloons_enabled: Boolean(row.balloons_enabled),
@@ -324,8 +329,8 @@ export class DbManager {
       };
     } else {
       res = {
-        start_with_windows: false,
-        reminder_delay_minutes: 5,
+        start_with_windows: true,
+        reminder_delay_minutes: 3,
         show_birthday_animations: true,
         confetti_enabled: true,
         balloons_enabled: true,

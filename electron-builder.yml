@@ -25,3 +25,4 @@ nsis:
   installerIcon: src/assets/icons/birthday_buddy.ico
   uninstallerIcon: src/assets/icons/birthday_buddy.ico
   deleteAppDataOnUninstall: false
+  include: build/installer.nsh
