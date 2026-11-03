@@ -1,4 +1,4 @@
-import { app, powerMonitor } from 'electron';
+import { app, powerMonitor, Menu } from 'electron';
 import * as path from 'path';
 import { DbManager } from './database/db-manager';
 import { MainWindowManager } from './windows/main-window';
@@ -9,6 +9,9 @@ import { ReminderService } from './services/reminder-service';
 import { BirthdayService } from './services/birthday-service';
 import { AppPaths } from './utils/paths';
 import log from 'electron-log';
+
+// Disable default menu bar across the entire application (File, Edit, View, Window, Help)
+Menu.setApplicationMenu(null);
 
 // Setup file logging
 log.transports.file.resolvePathFn = () => path.join(AppPaths.getLogsDir(), 'birthday-buddy.log');
@@ -61,12 +64,6 @@ if (!gotTheLock) {
       const db = DbManager.getInstance();
       await db.initialize();
       registerIpcHandlers();
-
-      // Auto-seed sample employees if DB is currently empty
-      if (db.getAllEmployees().length === 0) {
-        log.info('Database has 0 employees. Auto-seeding 6 sample employees with photos...');
-        await seedDemoEmployees();
-      }
 
       // Configure celebration callback
       ReminderService.getInstance().onTriggerCelebration(birthdays => {

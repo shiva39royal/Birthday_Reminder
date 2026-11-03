@@ -224,7 +224,7 @@ export class DbManager {
     if (!this.db) throw new Error('Database not initialized');
     const now = new Date().toISOString();
     this.db.run(
-      `INSERT INTO employees (id, employee_name, date_of_birth, photo_path, created_at, updated_at)
+      `INSERT OR REPLACE INTO employees (id, employee_name, date_of_birth, photo_path, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [emp.id, emp.employee_name.trim(), emp.date_of_birth, emp.photo_path || null, now, now]
     );
@@ -423,6 +423,43 @@ export class DbManager {
     }
     this.markDirty();
     this.saveToDisk();
+  }
+
+  public resetAllData(): void {
+    if (!this.db) return;
+    this.db.run(`DELETE FROM reminder_history;`);
+    this.db.run(`DELETE FROM daily_reminder_state;`);
+    this.db.run(`DELETE FROM employees;`);
+    this.db.run(`
+      UPDATE application_settings SET
+        start_with_windows = 1,
+        reminder_delay_minutes = 3,
+        show_birthday_animations = 1,
+        confetti_enabled = 1,
+        balloons_enabled = 1,
+        show_employee_photos = 1,
+        last_processed_date = NULL,
+        notification_enabled = 1,
+        feb29_policy = 'feb28'
+      WHERE id = 1;
+    `);
+
+    // Delete all saved employee photos
+    try {
+      const photosDir = AppPaths.getPhotosDir();
+      if (fs.existsSync(photosDir)) {
+        const files = fs.readdirSync(photosDir);
+        for (const file of files) {
+          fs.unlinkSync(path.join(photosDir, file));
+        }
+      }
+    } catch (err) {
+      log.warn('Could not clean up photos directory on reset:', err);
+    }
+
+    this.markDirty();
+    this.saveToDisk();
+    log.info('All database records and photos have been reset to fresh state.');
   }
 
   public markRemindersAcknowledged(date: string, employeeCount: number = 0): void {

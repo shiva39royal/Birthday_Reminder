@@ -73,6 +73,11 @@ export function registerIpcHandlers(): void {
     return seedDemoEmployees();
   });
 
+  ipcMain.handle('db:resetAllData', async () => {
+    db.resetAllData();
+    return true;
+  });
+
   // --- Birthdays ---
   ipcMain.handle('birthday:today', async () => {
     return birthdayService.getTodaysBirthdays();

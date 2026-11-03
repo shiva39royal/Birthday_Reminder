@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Folder,
   PartyPopper,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react';
 import { ApplicationSettings, AppInfo } from '../../../shared/types';
 
@@ -87,14 +88,30 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleSeedDemo = async () => {
+  const handleLoadDemoData = async () => {
     try {
       const count = await window.birthdayBuddyAPI.seedDemoEmployees();
-      showToast(`Seeded ${count} demo employees successfully!`);
+      showToast(`Loaded ${count} demo records with photos and today's celebration!`);
       loadData();
     } catch (err) {
-      console.error('Failed to seed demo employees:', err);
-      showToast('Failed to seed demo employees.');
+      console.error('Failed to load demo employees:', err);
+      showToast('Failed to load demo employees.');
+    }
+  };
+
+  const handleResetAllData = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to RESET all data?\n\nThis will permanently delete all employee records, saved photos, and reminder history, returning the application to a completely clean, fresh state.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await window.birthdayBuddyAPI.resetAllData();
+      showToast('All data deleted! The application is fresh and clean.');
+      loadData();
+    } catch (err) {
+      console.error('Failed to reset all data:', err);
+      showToast('Failed to reset data.');
     }
   };
 
@@ -373,7 +390,36 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Demo Data & Factory Reset Actions */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border border-purple-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Demo Data & App Reset</h3>
+            <p className="text-xs text-gray-500">
+              Easily load the 6 pre-configured sample employees or wipe everything to start completely fresh.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleLoadDemoData}
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-200 transition-all cursor-pointer"
+              title="Load 6 pre-configured demo employees with real portraits and today's birthdays"
+            >
+              <Users className="w-4 h-4 text-purple-200" />
+              <span>Load Demo Data</span>
+            </button>
+
+            <button
+              onClick={handleResetAllData}
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-200 transition-all cursor-pointer"
+              title="Delete all employee records, photos, and history to make the app completely fresh"
+            >
+              <Trash2 className="w-4 h-4 text-rose-200" />
+              <span>Reset All Data</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={handleBackup}
             className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-md transition-all cursor-pointer"
@@ -396,15 +442,6 @@ export const Settings: React.FC = () => {
           >
             <FileSpreadsheet className="w-4 h-4 text-purple-600" />
             <span>Export Employees (.xlsx)</span>
-          </button>
-
-          <button
-            onClick={handleSeedDemo}
-            className="flex items-center justify-center space-x-2 p-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs transition-all cursor-pointer"
-            title="Seed 6 demo employees with portrait photos and today's birthdays"
-          >
-            <Users className="w-4 h-4 text-amber-600" />
-            <span>Seed 6 Demo Records</span>
           </button>
         </div>
       </div>

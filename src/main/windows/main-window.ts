@@ -26,6 +26,7 @@ export class MainWindowManager {
       center: true,
       title: 'Birthday Buddy — Team Birthday Reminder',
       icon: iconPath,
+      autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(app.getAppPath(), 'out/main/preload/index.js'),
         nodeIntegration: false,
@@ -35,6 +36,8 @@ export class MainWindowManager {
       show: false,
       backgroundColor: '#F9FAFB'
     });
+
+    this.instance.setMenu(null);
 
     this.instance.once('ready-to-show', () => {
       this.instance?.show();

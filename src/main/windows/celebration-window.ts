@@ -53,8 +53,11 @@ export class CelebrationWindowManager {
         sandbox: false
       },
       show: false,
-      backgroundColor: '#2e1065'
+      backgroundColor: '#2e1065',
+      autoHideMenuBar: true
     });
+
+    this.instance.setMenu(null);
 
     this.instance.once('ready-to-show', () => {
       this.instance?.show();
