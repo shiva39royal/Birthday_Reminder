@@ -1,9 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ExcelJS from 'exceljs';
-import { app } from 'electron';
 import { DbManager } from './db-manager';
-import { ImageService } from '../services/image-service';
 import { BirthdayService } from '../services/birthday-service';
 import { AppPaths } from '../utils/paths';
 import log from 'electron-log';
@@ -13,70 +11,55 @@ export interface DemoEmployeeDef {
   name: string;
   dob: string; // DD-MM
   dobDisplay: string; // DD-MM
-  department: string;
-  photoFileName: string;
+  department?: string;
+  photoFileName?: string;
 }
 
+// 21 team members from Team_Birthday_Template.xlsx
 export const DEMO_EMPLOYEES: DemoEmployeeDef[] = [
-  {
-    id: 'emp-john-doe',
-    name: 'John Doe',
-    dob: '03-11',
-    dobDisplay: '03-11',
-    department: 'Software Engineering',
-    photoFileName: 'john-doe.jpg'
-  },
-  {
-    id: 'emp-sarah-jenkins',
-    name: 'Sarah Jenkins',
-    dob: '03-11',
-    dobDisplay: '03-11',
-    department: 'Product Design',
-    photoFileName: 'sarah-jenkins.jpg'
-  },
-  {
-    id: 'emp-rahul-sharma',
-    name: 'Rahul Sharma',
-    dob: '06-11',
-    dobDisplay: '06-11',
-    department: 'Operations & Delivery',
-    photoFileName: 'rahul-sharma.jpg'
-  },
-  {
-    id: 'emp-emily-watson',
-    name: 'Emily Watson',
-    dob: '12-11',
-    dobDisplay: '12-11',
-    department: 'Human Resources',
-    photoFileName: 'emily-watson.jpg'
-  },
-  {
-    id: 'emp-michael-chang',
-    name: 'Michael Chang',
-    dob: '20-11',
-    dobDisplay: '20-11',
-    department: 'Financial Analysis',
-    photoFileName: 'michael-chang.jpg'
-  },
-  {
-    id: 'emp-priya-patel',
-    name: 'Priya Patel',
-    dob: '01-12',
-    dobDisplay: '01-12',
-    department: 'Marketing & Brand',
-    photoFileName: 'priya-patel.jpg'
-  }
+  { id: 'emp-1', name: 'D. SHIVA KALYAN RAYAL', dob: '22-08', dobDisplay: '22-08' },
+  { id: 'emp-2', name: 'M. JESHWANTH REDDY', dob: '09-12', dobDisplay: '09-12' },
+  { id: 'emp-3', name: 'B. SAI ROHAN', dob: '08-02', dobDisplay: '08-02' },
+  { id: 'emp-4', name: 'M. GNANASEKHAR', dob: '09-01', dobDisplay: '09-01' },
+  { id: 'emp-5', name: 'B. BALA BHASKAR', dob: '17-10', dobDisplay: '17-10' },
+  { id: 'emp-6', name: 'A. UMA DEVI', dob: '24-03', dobDisplay: '24-03' },
+  { id: 'emp-7', name: 'M. RENUKA', dob: '11-11', dobDisplay: '11-11' },
+  { id: 'emp-8', name: 'B. SRI LAKSHMI', dob: '04-04', dobDisplay: '04-04' },
+  { id: 'emp-9', name: 'S. SRI RAM', dob: '28-01', dobDisplay: '28-01' },
+  { id: 'emp-10', name: 'G. PAWAN KALYAN', dob: '24-10', dobDisplay: '24-10' },
+  { id: 'emp-11', name: 'G. SRINEYYA', dob: '14-07', dobDisplay: '14-07' },
+  { id: 'emp-12', name: 'P. RAMA DEVI', dob: '15-06', dobDisplay: '15-06' },
+  { id: 'emp-13', name: 'K. VARDHAN', dob: '10-12', dobDisplay: '10-12' },
+  { id: 'emp-14', name: 'R. PRASAD', dob: '16-08', dobDisplay: '16-08' },
+  { id: 'emp-15', name: 'B. DILEEP KUMAR', dob: '11-08', dobDisplay: '11-08' },
+  { id: 'emp-16', name: 'D. BHAVANI', dob: '11-08', dobDisplay: '11-08' },
+  { id: 'emp-17', name: 'V. ASHVITHA', dob: '19-03', dobDisplay: '19-03' },
+  { id: 'emp-18', name: 'S. SWATHI', dob: '20-02', dobDisplay: '20-02' },
+  { id: 'emp-19', name: 'B. HEMALATHA', dob: '14-06', dobDisplay: '14-06' },
+  { id: 'emp-20', name: 'R. JAGANNATH', dob: '30-04', dobDisplay: '30-04' },
+  { id: 'emp-21', name: 'B. KUMAR', dob: '20-08', dobDisplay: '20-08' }
 ];
 
-function findDemoPhotoPath(fileName: string): string | null {
-  const possiblePaths = [
-    path.join(__dirname, '../../src/assets/demo-photos', fileName),
-    path.join(app.getAppPath(), 'src/assets/demo-photos', fileName),
-    path.join(process.cwd(), 'src/assets/demo-photos', fileName),
-    path.join(__dirname, 'demo-photos', fileName)
+function findTemplatePath(): string | null {
+  const candidatePaths = [
+    path.join(process.cwd(), 'Team_Birthday_Template.xlsx'),
+    path.join(__dirname, 'Team_Birthday_Template.xlsx'),
+    path.join(__dirname, '../../Team_Birthday_Template.xlsx')
   ];
 
-  for (const p of possiblePaths) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const electron = require('electron');
+    const electronApp = electron?.app || electron?.remote?.app;
+    if (electronApp?.getAppPath) {
+      candidatePaths.unshift(path.join(electronApp.getAppPath(), 'Team_Birthday_Template.xlsx'));
+      candidatePaths.unshift(path.join(electronApp.getAppPath(), 'out/main', 'Team_Birthday_Template.xlsx'));
+    }
+  } catch {
+    // Non-electron test environment
+  }
+
+  for (const p of candidatePaths) {
     if (fs.existsSync(p)) {
       return p;
     }
@@ -85,6 +68,17 @@ function findDemoPhotoPath(fileName: string): string | null {
 }
 
 export async function generateDemoExcelFile(targetPath: string): Promise<string> {
+  const templatePath = findTemplatePath();
+  if (templatePath && fs.existsSync(templatePath)) {
+    const dir = path.dirname(targetPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.copyFileSync(templatePath, targetPath);
+    log.info(`Copied Team_Birthday_Template.xlsx to ${targetPath}`);
+    return targetPath;
+  }
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Birthday Buddy';
   workbook.created = new Date();
@@ -106,7 +100,7 @@ export async function generateDemoExcelFile(targetPath: string): Promise<string>
   headerRow.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF1E1B4B' } // Deep Navy Indigo
+    fgColor: { argb: 'FF1E1B4B' }
   };
   headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
 
@@ -114,7 +108,7 @@ export async function generateDemoExcelFile(targetPath: string): Promise<string>
     const emp = DEMO_EMPLOYEES[i];
     const rowNum = i + 2;
     const row = ws.getRow(rowNum);
-    row.height = 70;
+    row.height = 50;
 
     row.getCell(1).value = i + 1;
     row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
@@ -124,25 +118,11 @@ export async function generateDemoExcelFile(targetPath: string): Promise<string>
     row.getCell(2).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
 
     row.getCell(3).value = emp.dobDisplay;
+    row.getCell(3).numFmt = '@';
     row.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // Embed photo into worksheet cell if available
-    const photoPath = findDemoPhotoPath(emp.photoFileName);
-    if (photoPath && fs.existsSync(photoPath)) {
-      try {
-        const imageId = workbook.addImage({
-          filename: photoPath,
-          extension: 'jpeg'
-        });
-        ws.addImage(imageId, {
-          tl: { col: 3.2, row: rowNum - 0.85 },
-          ext: { width: 64, height: 64 },
-          editAs: 'oneCell'
-        });
-      } catch (err) {
-        log.warn('Could not embed photo in demo Excel row:', emp.name, err);
-      }
-    }
+    row.getCell(4).value = 'Insert Photo Here';
+    row.getCell(4).font = { italic: true, color: { argb: 'FF9CA3AF' }, size: 9, name: 'Segoe UI' };
 
     const isEven = i % 2 === 0;
     const bgColor = isEven ? 'FFF8FAFC' : 'FFFFFFFF';
@@ -174,70 +154,90 @@ export async function generateDemoExcelFile(targetPath: string): Promise<string>
 
 export async function seedDemoEmployees(): Promise<number> {
   const db = DbManager.getInstance();
-  const imageService = ImageService.getInstance();
-  const photosDir = AppPaths.getPhotosDir();
-
-  if (!fs.existsSync(photosDir)) {
-    fs.mkdirSync(photosDir, { recursive: true });
-  }
+  const templatePath = findTemplatePath();
 
   let count = 0;
-  for (const emp of DEMO_EMPLOYEES) {
+
+  // 1. Try parsing directly from Team_Birthday_Template.xlsx
+  if (templatePath && fs.existsSync(templatePath)) {
     try {
-      const sourcePhotoPath = findDemoPhotoPath(emp.photoFileName);
-      let savedPhotoFilename: string | null = null;
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.readFile(templatePath);
+      const ws = wb.getWorksheet('Employee Birthday Details') || wb.worksheets[0];
+      if (ws) {
+        for (let rNum = 2; rNum <= ws.rowCount; rNum++) {
+          const row = ws.getRow(rNum);
+          const nameVal = row.getCell(2).value;
+          const dobVal = row.getCell(3).value;
+          if (nameVal && dobVal) {
+            const name = String(nameVal).trim();
+            const dob = String(dobVal).trim();
+            const id = `emp-template-${rNum - 1}`;
 
-      if (sourcePhotoPath && fs.existsSync(sourcePhotoPath)) {
-        const targetFilename = `${emp.id}.jpg`;
-        const targetPath = path.join(photosDir, targetFilename);
-        fs.copyFileSync(sourcePhotoPath, targetPath);
-        savedPhotoFilename = targetFilename;
-        log.info(`Copied portrait photo for ${emp.name} to ${targetPath}`);
+            const existing = db.getEmployeeById(id);
+            if (existing) {
+              db.updateEmployee(id, {
+                employee_name: name,
+                date_of_birth: dob,
+                photo_path: existing.photo_path
+              });
+            } else {
+              db.createEmployee({
+                id,
+                employee_name: name,
+                date_of_birth: dob,
+                photo_path: null
+              });
+            }
+            count++;
+          }
+        }
       }
+    } catch (err) {
+      log.warn('Could not parse Team_Birthday_Template.xlsx directly:', err);
+    }
+  }
 
-      // Check if employee already exists; if so, update. If not, create.
+  // 2. Fallback to DEMO_EMPLOYEES (which also matches Team_Birthday_Template.xlsx)
+  if (count === 0) {
+    for (const emp of DEMO_EMPLOYEES) {
       const existing = db.getEmployeeById(emp.id);
       if (existing) {
         db.updateEmployee(emp.id, {
           employee_name: emp.name,
           date_of_birth: emp.dob,
-          photo_path: savedPhotoFilename || existing.photo_path
+          photo_path: existing.photo_path
         });
       } else {
         db.createEmployee({
           id: emp.id,
           employee_name: emp.name,
           date_of_birth: emp.dob,
-          photo_path: savedPhotoFilename
+          photo_path: null
         });
       }
       count++;
-    } catch (err) {
-      log.error(`Failed to seed employee ${emp.name}:`, err);
     }
   }
 
-  // Generate Excel file in project root and userData directory
+  // Copy template file to user data & project root
   try {
     const rootExcelPath = path.join(process.cwd(), 'Team_Birthdays.xlsx');
-    await generateDemoExcelFile(rootExcelPath);
-
     const userExcelPath = path.join(AppPaths.getUserDataDir(), 'Team_Birthdays.xlsx');
+    await generateDemoExcelFile(rootExcelPath);
     await generateDemoExcelFile(userExcelPath);
   } catch (err) {
-    log.error('Failed to generate Team_Birthdays.xlsx demo file:', err);
+    log.error('Failed to copy demo Excel file:', err);
   }
 
-  // Reset today's reminder state so restarting or opening triggers the celebration cleanly!
+  // Reset today's reminder state so restarting or opening triggers the celebration cleanly
   try {
     const today = BirthdayService.getInstance().getTodayDate().isoDate;
     db.resetDateDisplayed(today);
-    db.resetDateDisplayed('2026-11-03');
-    log.info(`Reset daily_reminder_state for ${today} and 2026-11-03 so celebration triggers.`);
   } catch (err) {
     log.warn('Could not reset daily_reminder_state:', err);
   }
 
-  log.info(`Successfully seeded ${count} professional employee records with real portrait headshots!`);
+  log.info(`Successfully seeded ${count} employee records from Team_Birthday_Template.xlsx!`);
   return count;
 }

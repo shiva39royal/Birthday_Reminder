@@ -43,9 +43,16 @@ export class DbManager {
           if (fs.existsSync(nmPath)) return nmPath;
 
           // 4. Check in app root / out/main (Electron runtime)
-          if (typeof app !== 'undefined' && app?.getAppPath) {
-            const appPath = path.join(app.getAppPath(), 'out/main', file);
-            if (fs.existsSync(appPath)) return appPath;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const electron = require('electron');
+            const electronApp = electron?.app || electron?.remote?.app;
+            if (electronApp?.getAppPath) {
+              const appPath = path.join(electronApp.getAppPath(), 'out/main', file);
+              if (fs.existsSync(appPath)) return appPath;
+            }
+          } catch {
+            // Non-electron test environment
           }
 
           // 5. Check in resourcesPath (for packaged apps)

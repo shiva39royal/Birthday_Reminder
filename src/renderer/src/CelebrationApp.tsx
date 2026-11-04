@@ -10,18 +10,21 @@ export const CelebrationApp: React.FC = () => {
 
   useEffect(() => {
     if (window.celebrationAPI) {
-      window.celebrationAPI.getCelebrationData().then(data => {
-        setBirthdays(data.birthdays || []);
-        setSettings(data.settings);
-        setLoading(false);
+      window.celebrationAPI
+        .getCelebrationData()
+        .then((data: { birthdays: BirthdayEmployee[]; settings: ApplicationSettings }) => {
+          setBirthdays(data.birthdays || []);
+          setSettings(data.settings);
+          setLoading(false);
 
-        if (data.settings?.confetti_enabled !== false) {
-          triggerExecutiveConfetti();
-        }
-      }).catch(err => {
-        console.error('Failed to load celebration data:', err);
-        setLoading(false);
-      });
+          if (data.settings?.confetti_enabled !== false) {
+            triggerExecutiveConfetti();
+          }
+        })
+        .catch((err: unknown) => {
+          console.error('Failed to load celebration data:', err);
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }
