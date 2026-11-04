@@ -17,7 +17,7 @@ export const EmployeeBirthdays: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string | null>>({});
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'dob'>('name');
+  const [sortBy, setSortBy] = useState<'upcoming' | 'name' | 'dob'>('upcoming');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
 
@@ -190,6 +190,37 @@ export const EmployeeBirthdays: React.FC = () => {
     }
   };
 
+  // Helper: calculate days remaining until next upcoming birthday
+  const getDaysUntilBirthday = (dobStr: string): number => {
+    if (!dobStr) return 9999;
+    const parts = dobStr.trim().split(/[-/.]/).map(Number);
+    let day = 1;
+    let month = 1;
+    if (parts.length === 2) {
+      day = parts[0];
+      month = parts[1];
+    } else if (parts.length === 3) {
+      day = parts[0] > 1000 ? parts[2] : parts[0];
+      month = parts[1];
+    } else {
+      return 9999;
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const today = new Date(currentYear, now.getMonth(), now.getDate()).getTime();
+
+    // Birthday this year
+    let bdayThisYear = new Date(currentYear, month - 1, day).getTime();
+
+    // If already passed today, next celebration is next year
+    if (bdayThisYear < today) {
+      bdayThisYear = new Date(currentYear + 1, month - 1, day).getTime();
+    }
+
+    return Math.round((bdayThisYear - today) / (1000 * 60 * 60 * 24));
+  };
+
   // Filter and Sort
   const filtered = employees.filter(emp =>
     emp.employee_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -197,23 +228,30 @@ export const EmployeeBirthdays: React.FC = () => {
 
   filtered.sort((a, b) => {
     if (sortBy === 'name') {
-      return sortOrder === 'asc'
-        ? a.employee_name.localeCompare(b.employee_name)
-        : b.employee_name.localeCompare(a.employee_name);
-    } else {
-      // Sort by birthday month and day
+      const cmp = a.employee_name.localeCompare(b.employee_name);
+      return sortOrder === 'asc' ? cmp : -cmp;
+    } else if (sortBy === 'dob') {
+      // Sort by calendar month and day (Jan 1 to Dec 31)
       const parseHelper = (dobStr: string) => {
         const parts = (dobStr || '').split(/[-/.]/).map(Number);
         if (parts.length === 2) return parts[1] * 100 + parts[0]; // month * 100 + day
         if (parts.length === 3) {
-          if (parts[0] > 1000) return parts[1] * 100 + parts[2]; // YYYY-MM-DD
-          return parts[1] * 100 + parts[0]; // DD-MM-YYYY
+          if (parts[0] > 1000) return parts[1] * 100 + parts[2];
+          return parts[1] * 100 + parts[0];
         }
         return 0;
       };
       const aScore = parseHelper(a.date_of_birth);
       const bScore = parseHelper(b.date_of_birth);
       return sortOrder === 'asc' ? aScore - bScore : bScore - aScore;
+    } else {
+      // 'upcoming' (Default) - sorted chronologically by upcoming birthday from today
+      const aDays = getDaysUntilBirthday(a.date_of_birth);
+      const bDays = getDaysUntilBirthday(b.date_of_birth);
+      if (aDays === bDays) {
+        return a.employee_name.localeCompare(b.employee_name);
+      }
+      return sortOrder === 'asc' ? aDays - bDays : bDays - aDays;
     }
   });
 
@@ -258,8 +296,9 @@ export const EmployeeBirthdays: React.FC = () => {
               onChange={e => setSortBy(e.target.value as any)}
               className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 font-medium text-xs focus:outline-none"
             >
+              <option value="upcoming">Upcoming Order (Next Birthday First)</option>
               <option value="name">Employee Name</option>
-              <option value="dob">Birthday Month/Day</option>
+              <option value="dob">Calendar Date (Jan - Dec)</option>
             </select>
             <button
               onClick={() => setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))}
@@ -304,6 +343,7 @@ export const EmployeeBirthdays: React.FC = () => {
                     return dobStr;
                   };
                   const formattedDob = formatDobDisplay(emp.date_of_birth);
+                  const daysUntil = getDaysUntilBirthday(emp.date_of_birth);
 
                   return (
                     <tr key={emp.id} className="hover:bg-purple-50/40 transition-colors">
@@ -323,7 +363,24 @@ export const EmployeeBirthdays: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 font-bold text-gray-900">{emp.employee_name}</td>
-                      <td className="py-3 px-4 text-gray-600 font-mono text-xs">{formattedDob}</td>
+                      <td className="py-3 px-4 text-gray-600 font-mono text-xs">
+                        <div className="flex items-center space-x-2">
+                          <span>{formattedDob}</span>
+                          {daysUntil === 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 text-[10px] font-bold">
+                              Today! 🎂
+                            </span>
+                          ) : daysUntil === 1 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold">
+                              Tomorrow
+                            </span>
+                          ) : daysUntil <= 30 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-medium">
+                              In {daysUntil}d
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
                           <button

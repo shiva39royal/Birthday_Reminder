@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Cake, Calendar, Sparkles, ChevronRight, Gift } from 'lucide-react';
+import { Cake, Calendar, Sparkles, ChevronRight, Gift } from 'lucide-react';
 import { SummaryCard } from '../components/SummaryCard';
 import { DashboardStats, BirthdayEmployee } from '../../../shared/types';
 
@@ -76,14 +76,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
       </div>
 
       {/* Summary Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <SummaryCard
-          title="Total Employees"
-          value={stats.totalEmployees}
-          subtitle="Registered in database"
-          icon={<Users className="w-6 h-6" />}
-          accentColor="purple"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <SummaryCard
           title="Today's Birthdays"
           value={stats.todayCount}
@@ -104,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
           subtitle={
             stats.nextBirthday
               ? `In ${stats.nextBirthday.daysRemaining} day${stats.nextBirthday.daysRemaining === 1 ? '' : 's'} (${formatDateDisplay(stats.nextBirthday.date)})`
-              : 'Add employees to track'
+              : 'Upcoming celebration'
           }
           icon={<Gift className="w-6 h-6" />}
           accentColor="amber"
@@ -120,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
           </div>
           {todayBirthdays.length > 0 && (
             <span className="text-xs bg-pink-100 text-pink-700 px-3 py-1 rounded-full font-bold">
-              {todayBirthdays.length} Celebration{todayBirthdays.length > 1 ? 's' : ''} Today!
+              Celebrations Today!
             </span>
           )}
         </div>
@@ -218,7 +211,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
         ) : (
           <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center bg-gray-50/50 space-y-2">
             <p className="text-sm text-gray-500 font-medium">No upcoming birthdays in the next 30 days.</p>
-            {stats.totalEmployees === 0 && (
+            {stats.todayCount === 0 && stats.upcomingCount === 0 && !stats.nextBirthday && (
               <button
                 onClick={onNavigateToExcel}
                 className="text-xs font-bold text-purple-600 hover:underline inline-block mt-1"

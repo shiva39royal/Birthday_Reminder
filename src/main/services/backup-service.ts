@@ -132,7 +132,7 @@ export class BackupService {
     ws.columns = [
       { header: 'ID', key: 'id', width: 38 },
       { header: 'Employee Name', key: 'name', width: 30 },
-      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
+      { header: 'Date of Birth (DD-MM)', key: 'dob', width: 25 },
       { header: 'Has Photo', key: 'hasPhoto', width: 15 },
       { header: 'Created At', key: 'createdAt', width: 25 }
     ];

@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Settings as SettingsIcon,
   Power,
-  Clock,
   Sparkles,
   Database,
   Archive,
@@ -10,32 +8,22 @@ import {
   FileSpreadsheet,
   Calendar,
   CheckCircle2,
-  AlertCircle,
-  Folder,
-  PartyPopper,
-  Users,
   Trash2
 } from 'lucide-react';
-import { ApplicationSettings, AppInfo } from '../../../shared/types';
+import { ApplicationSettings } from '../../../shared/types';
 
 export const Settings: React.FC = () => {
   const [settings, setSettings] = useState<ApplicationSettings | null>(null);
-  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [isStartupEnabled, setIsStartupEnabled] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Test mode simulated date
-  const [simulatedDate, setSimulatedDate] = useState('');
-
   const loadData = async () => {
     try {
-      const [s, info, startup] = await Promise.all([
+      const [s, startup] = await Promise.all([
         window.birthdayBuddyAPI.getSettings(),
-        window.birthdayBuddyAPI.getAppInfo(),
         window.birthdayBuddyAPI.isStartupEnabled()
       ]);
       setSettings(s);
-      setAppInfo(info);
       setIsStartupEnabled(startup);
     } catch (err) {
       console.error('Failed to load settings:', err);
@@ -88,17 +76,6 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleLoadDemoData = async () => {
-    try {
-      const count = await window.birthdayBuddyAPI.seedDemoEmployees();
-      showToast(`Loaded ${count} demo records with photos and today's celebration!`);
-      loadData();
-    } catch (err) {
-      console.error('Failed to load demo employees:', err);
-      showToast('Failed to load demo employees.');
-    }
-  };
-
   const handleResetAllData = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to RESET all data?\n\nThis will permanently delete all employee records, saved photos, and reminder history, returning the application to a completely clean, fresh state.'
@@ -142,19 +119,6 @@ export const Settings: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to export employees:', err);
-    }
-  };
-
-  const handleApplySimulatedDate = async () => {
-    try {
-      await window.birthdayBuddyAPI.setSimulatedDate(simulatedDate || null);
-      showToast(
-        simulatedDate
-          ? `Simulated date active: ${simulatedDate}`
-          : 'Reverted to actual Windows local date.'
-      );
-    } catch (err) {
-      console.error('Failed to set simulated date:', err);
     }
   };
 
@@ -371,52 +335,22 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        {appInfo && (
-          <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-2 text-xs">
-            <div className="flex items-start space-x-2">
-              <Folder className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-gray-700">Database File:</span>
-                <p className="font-mono text-gray-500 break-all select-all">{appInfo.dbPath}</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <Folder className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-gray-700">Photos Storage:</span>
-                <p className="font-mono text-gray-500 break-all select-all">{appInfo.photosPath}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Demo Data & Factory Reset Actions */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border border-purple-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Clean Local Storage Card */}
+        <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Demo Data & App Reset</h3>
+            <p className="text-sm font-bold text-gray-800">Secure Offline Storage</p>
             <p className="text-xs text-gray-500">
-              Easily load the 6 pre-configured sample employees or wipe everything to start completely fresh.
+              All employee records and photos are stored securely on your local computer.
             </p>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={handleLoadDemoData}
-              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-200 transition-all cursor-pointer"
-              title="Load 6 pre-configured demo employees with real portraits and today's birthdays"
-            >
-              <Users className="w-4 h-4 text-purple-200" />
-              <span>Load Demo Data</span>
-            </button>
-
-            <button
-              onClick={handleResetAllData}
-              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-200 transition-all cursor-pointer"
-              title="Delete all employee records, photos, and history to make the app completely fresh"
-            >
-              <Trash2 className="w-4 h-4 text-rose-200" />
-              <span>Reset All Data</span>
-            </button>
-          </div>
+          <button
+            onClick={handleResetAllData}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-all cursor-pointer shrink-0"
+            title="Delete all employee records and photos to start fresh"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <span>Reset All Data</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -443,50 +377,6 @@ export const Settings: React.FC = () => {
             <FileSpreadsheet className="w-4 h-4 text-purple-600" />
             <span>Export Employees (.xlsx)</span>
           </button>
-        </div>
-      </div>
-
-      {/* Section 5: Development & QA Simulation Tool */}
-      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-3xl border border-purple-200 p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-200">
-              <PartyPopper className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-gray-900">Developer & QA Date Simulator</h2>
-              <p className="text-xs text-purple-700">
-                Test birthday notifications for any specific date without altering Windows system time.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 items-center pt-1">
-          <input
-            type="date"
-            value={simulatedDate}
-            onChange={e => setSimulatedDate(e.target.value)}
-            className="px-3.5 py-2 bg-white border border-purple-200 rounded-xl text-xs font-bold focus:outline-none"
-          />
-          <button
-            onClick={handleApplySimulatedDate}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-200"
-          >
-            Set Simulated Date
-          </button>
-          {simulatedDate && (
-            <button
-              onClick={() => {
-                setSimulatedDate('');
-                window.birthdayBuddyAPI.setSimulatedDate(null);
-                showToast('Reset to real Windows system clock.');
-              }}
-              className="text-xs text-purple-600 hover:underline font-bold"
-            >
-              Reset to Actual System Time
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -76,10 +76,11 @@ export const ReminderHistory: React.FC = () => {
           <Calendar className="w-4 h-4 text-gray-400" />
           <span>Filter Date:</span>
           <input
-            type="date"
+            type="text"
+            placeholder="DD-MM or YYYY-MM-DD"
             value={dateFilter}
             onChange={e => setDateFilter(e.target.value)}
-            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 font-medium text-xs focus:outline-none"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 font-medium text-xs focus:outline-none w-36"
           />
           {dateFilter && (
             <button

@@ -507,8 +507,8 @@ export class DbManager {
     const params: any[] = [];
 
     if (options?.date) {
-      query += ` AND r.reminder_date = ?`;
-      params.push(options.date);
+      query += ` AND (r.reminder_date = ? OR r.reminder_date LIKE ?)`;
+      params.push(options.date, `%${options.date}%`);
     }
     if (options?.search) {
       query += ` AND LOWER(r.employee_name_snapshot) LIKE ?`;
