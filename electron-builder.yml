@@ -24,5 +24,5 @@ nsis:
   shortcutName: Birthday Buddy
   installerIcon: src/assets/icons/birthday_buddy.ico
   uninstallerIcon: src/assets/icons/birthday_buddy.ico
-  deleteAppDataOnUninstall: false
+  deleteAppDataOnUninstall: true
   include: build/installer.nsh
