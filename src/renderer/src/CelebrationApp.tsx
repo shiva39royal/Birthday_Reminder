@@ -62,11 +62,20 @@ export const CelebrationApp: React.FC = () => {
     }
   };
 
-  const formatBirthDate = (isoStr: string) => {
-    if (!isoStr) return '';
-    const [y, m, d] = isoStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  const formatBirthDate = (dobStr: string) => {
+    if (!dobStr) return '';
+    const parts = dobStr.trim().split(/[-/.]/).map(Number);
+    if (parts.length === 2) {
+      const [d, m] = parts;
+      const date = new Date(2024, m - 1, d);
+      return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+    }
+    if (parts.length === 3) {
+      const [y, m, d] = parts[0] > 1000 ? [parts[0], parts[1], parts[2]] : [parts[2], parts[1], parts[0]];
+      const date = new Date(y, m - 1, d);
+      return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+    }
+    return dobStr;
   };
 
   const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -172,7 +181,7 @@ export const CelebrationApp: React.FC = () => {
 
                   {/* Birth Date */}
                   <p className="text-xs text-slate-300 font-medium">
-                    Born {formatBirthDate(emp.date_of_birth)}
+                    Birthday: {formatBirthDate(emp.date_of_birth)}
                   </p>
                 </div>
               ))}

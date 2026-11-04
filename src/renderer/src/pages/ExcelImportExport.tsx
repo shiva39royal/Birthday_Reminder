@@ -180,7 +180,7 @@ export const ExcelImportExport: React.FC = () => {
               <ul className="list-disc list-inside space-y-0.5 text-gray-500 pl-1">
                 <li>Dynamic serial numbers that populate as you type names</li>
                 <li>Clear step-by-step instructions tab with image insertion guide</li>
-                <li>Built-in validation styling and DD-MM-YYYY date formats</li>
+                <li>Built-in validation styling and DD-MM (day-month) date formats</li>
               </ul>
             </div>
           </div>

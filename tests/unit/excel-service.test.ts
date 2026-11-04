@@ -62,12 +62,12 @@ describe('ExcelService', () => {
       { header: 'Employee Photo', key: 'photo' }
     ];
 
-    // Valid row
-    ws.addRow([1, 'Valid User', '15-05-1995', '']);
-    // Invalid row: Future date
-    ws.addRow([2, 'Time Traveler', '15-05-2099', '']);
+    // Valid row with DD-MM
+    ws.addRow([1, 'Valid User', '15-05', '']);
+    // Invalid row: Invalid calendar day
+    ws.addRow([2, 'Invalid Day', '32-05', '']);
     // Invalid row: Missing name
-    ws.addRow([3, '', '10-10-1990', '']);
+    ws.addRow([3, '', '10-10', '']);
 
     await wb.xlsx.writeFile(testFile);
 
@@ -76,17 +76,31 @@ describe('ExcelService', () => {
 
     // Valid
     expect(preview[0].employeeName).toBe('Valid User');
-    expect(preview[0].dob).toBe('1995-05-15');
+    expect(preview[0].dob).toBe('15-05');
     expect(preview[0].status).toBe('valid');
 
-    // Future date
-    expect(preview[1].employeeName).toBe('Time Traveler');
+    // Invalid calendar day
+    expect(preview[1].employeeName).toBe('Invalid Day');
     expect(preview[1].status).toBe('invalid');
-    expect(preview[1].errors.some(e => e.includes('future'))).toBe(true);
+    expect(preview[1].errors.some(e => e.includes('Invalid day or month'))).toBe(true);
 
     // Missing name
     expect(preview[2].status).toBe('invalid');
     expect(preview[2].errors.some(e => e.includes('name is required'))).toBe(true);
+  });
+
+  it('parses Team_Birthday_Template.xlsx as test data with DD-MM format', async () => {
+    const templatePath = path.join(process.cwd(), 'Team_Birthday_Template.xlsx');
+    if (fs.existsSync(templatePath)) {
+      const preview = await excelService.parseExcelFile(templatePath);
+      expect(preview.length).toBe(21);
+      for (const row of preview) {
+        expect(row.status).toBe('valid');
+        expect(row.dob).toMatch(/^\d{2}-\d{2}$/);
+      }
+      expect(preview[0].employeeName).toBe('D. SHIVA KALYAN RAYAL');
+      expect(preview[0].dob).toBe('22-08');
+    }
   });
 
   it('extracts employee photos and maps them properly when parsing Excel file with photos', async () => {

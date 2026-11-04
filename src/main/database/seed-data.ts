@@ -11,8 +11,8 @@ import log from 'electron-log';
 export interface DemoEmployeeDef {
   id: string;
   name: string;
-  dob: string; // YYYY-MM-DD
-  dobDisplay: string; // DD-MM-YYYY
+  dob: string; // DD-MM
+  dobDisplay: string; // DD-MM
   department: string;
   photoFileName: string;
 }
@@ -21,48 +21,48 @@ export const DEMO_EMPLOYEES: DemoEmployeeDef[] = [
   {
     id: 'emp-john-doe',
     name: 'John Doe',
-    dob: '1992-11-03',
-    dobDisplay: '03-11-1992',
+    dob: '03-11',
+    dobDisplay: '03-11',
     department: 'Software Engineering',
     photoFileName: 'john-doe.jpg'
   },
   {
     id: 'emp-sarah-jenkins',
     name: 'Sarah Jenkins',
-    dob: '1996-11-03',
-    dobDisplay: '03-11-1996',
+    dob: '03-11',
+    dobDisplay: '03-11',
     department: 'Product Design',
     photoFileName: 'sarah-jenkins.jpg'
   },
   {
     id: 'emp-rahul-sharma',
     name: 'Rahul Sharma',
-    dob: '1990-11-06',
-    dobDisplay: '06-11-1990',
+    dob: '06-11',
+    dobDisplay: '06-11',
     department: 'Operations & Delivery',
     photoFileName: 'rahul-sharma.jpg'
   },
   {
     id: 'emp-emily-watson',
     name: 'Emily Watson',
-    dob: '1995-11-12',
-    dobDisplay: '12-11-1995',
+    dob: '12-11',
+    dobDisplay: '12-11',
     department: 'Human Resources',
     photoFileName: 'emily-watson.jpg'
   },
   {
     id: 'emp-michael-chang',
     name: 'Michael Chang',
-    dob: '1988-11-20',
-    dobDisplay: '20-11-1988',
+    dob: '20-11',
+    dobDisplay: '20-11',
     department: 'Financial Analysis',
     photoFileName: 'michael-chang.jpg'
   },
   {
     id: 'emp-priya-patel',
     name: 'Priya Patel',
-    dob: '1994-12-01',
-    dobDisplay: '01-12-1994',
+    dob: '01-12',
+    dobDisplay: '01-12',
     department: 'Marketing & Brand',
     photoFileName: 'priya-patel.jpg'
   }
@@ -96,7 +96,7 @@ export async function generateDemoExcelFile(targetPath: string): Promise<string>
   ws.columns = [
     { header: 'Sl.No', key: 'slNo', width: 10 },
     { header: 'Employee Name', key: 'name', width: 32 },
-    { header: 'Date of Birth (DD-MM-YYYY)', key: 'dob', width: 28 },
+    { header: 'Date of Birth (DD-MM)', key: 'dob', width: 28 },
     { header: 'Employee Photo (Insert > Pictures)', key: 'photo', width: 36 }
   ];
 

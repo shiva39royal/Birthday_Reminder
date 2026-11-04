@@ -67,6 +67,14 @@ async function buildMain() {
     console.log(`Copied ${files.length} demo photos to out/main/demo-photos`);
   }
 
+  // Copy Team_Birthday_Template.xlsx to out/main/
+  const templateSrc = path.join(__dirname, '../Team_Birthday_Template.xlsx');
+  const templateDest = path.join(outDir, 'Team_Birthday_Template.xlsx');
+  if (fs.existsSync(templateSrc)) {
+    fs.copyFileSync(templateSrc, templateDest);
+    console.log('Copied Team_Birthday_Template.xlsx to out/main/');
+  }
+
   console.log('Main process & preload bundle completed successfully!');
 }
 

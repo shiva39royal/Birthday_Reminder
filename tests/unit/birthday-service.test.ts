@@ -42,6 +42,20 @@ describe('BirthdayService', () => {
     expect(found?.employee_name).toBe('Rahul Sharma');
     expect(found?.age).toBe(31); // 2026 - 1995
     expect(found?.isToday).toBe(true);
+
+    // Also verify DD-MM format without year
+    db.createEmployee({
+      id: 'test-emp-ddmm',
+      employee_name: 'Priya Sharma',
+      date_of_birth: '15-05'
+    });
+
+    const todaysWithDdmm = birthdayService.getTodaysBirthdays();
+    const priya = todaysWithDdmm.find(e => e.id === 'test-emp-ddmm');
+    expect(priya).toBeDefined();
+    expect(priya?.employee_name).toBe('Priya Sharma');
+    expect(priya?.age).toBeUndefined();
+    expect(priya?.isToday).toBe(true);
   });
 
   it('handles multiple birthdays on the same day', () => {

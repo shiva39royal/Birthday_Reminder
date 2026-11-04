@@ -215,8 +215,20 @@ export class DbManager {
 
   public findEmployeesByNameAndDob(name: string, dob: string): Employee[] {
     if (!this.db) return [];
-    const stmt = this.db.prepare('SELECT * FROM employees WHERE LOWER(TRIM(employee_name)) = LOWER(TRIM(?)) AND date_of_birth = ?');
-    stmt.bind([name, dob]);
+    let query = 'SELECT * FROM employees WHERE LOWER(TRIM(employee_name)) = LOWER(TRIM(?)) AND (date_of_birth = ?';
+    const params: any[] = [name, dob];
+
+    // If DD-MM, also check if legacy format %-MM-DD exists
+    const parts = dob.split('-');
+    if (parts.length === 2) {
+      query += ' OR date_of_birth LIKE ?)';
+      params.push(`%-${parts[1]}-${parts[0]}`);
+    } else {
+      query += ')';
+    }
+
+    const stmt = this.db.prepare(query);
+    stmt.bind(params);
     const matches: Employee[] = [];
     while (stmt.step()) {
       matches.push(stmt.getAsObject() as unknown as Employee);

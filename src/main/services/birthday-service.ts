@@ -44,6 +44,29 @@ export class BirthdayService {
     return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
   }
 
+  public parseDob(dobStr: string): { day: number; month: number; year?: number } | null {
+    if (!dobStr) return null;
+    const parts = dobStr.trim().split(/[-/.]/).map(Number);
+    if (parts.length === 2) {
+      // DD-MM
+      const [day, month] = parts;
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return { day, month };
+      }
+    } else if (parts.length === 3) {
+      if (parts[0] > 1000) {
+        // YYYY-MM-DD
+        const [year, month, day] = parts;
+        return { year, month, day };
+      } else {
+        // DD-MM-YYYY
+        const [day, month, year] = parts;
+        return { year, month, day };
+      }
+    }
+    return null;
+  }
+
   public getTodaysBirthdays(): BirthdayEmployee[] {
     const db = DbManager.getInstance();
     const imageService = ImageService.getInstance();
@@ -55,11 +78,10 @@ export class BirthdayService {
     const matches: BirthdayEmployee[] = [];
 
     for (const emp of employees) {
-      if (!emp.date_of_birth) continue;
-      const parts = emp.date_of_birth.split('-').map(Number);
-      if (parts.length !== 3) continue;
+      const parsed = this.parseDob(emp.date_of_birth);
+      if (!parsed) continue;
 
-      const [birthYear, birthMonth, birthDay] = parts;
+      const { day: birthDay, month: birthMonth, year: birthYear } = parsed;
       let isToday = false;
 
       // Regular date match
@@ -82,7 +104,7 @@ export class BirthdayService {
       }
 
       if (isToday) {
-        const age = today.year - birthYear;
+        const age = birthYear ? today.year - birthYear : undefined;
         const photoUrl = emp.photo_path ? imageService.getPhotoDataUrl(emp.photo_path) : null;
 
         matches.push({
@@ -109,18 +131,17 @@ export class BirthdayService {
     const upcomingList: BirthdayEmployee[] = [];
 
     for (const emp of employees) {
-      if (!emp.date_of_birth) continue;
-      const parts = emp.date_of_birth.split('-').map(Number);
-      if (parts.length !== 3) continue;
+      const parsed = this.parseDob(emp.date_of_birth);
+      if (!parsed) continue;
 
-      const [birthYear, birthMonth, birthDay] = parts;
+      const { day: birthDay, month: birthMonth, year: birthYear } = parsed;
       const nextBday = this.calculateNextBirthday(today.year, birthMonth, birthDay, settings.feb29_policy);
 
       const daysRemaining = this.getDaysDifference(today.isoDate, nextBday.isoDate);
 
       // Only within (0, maxDays] — excludes today
       if (daysRemaining > 0 && daysRemaining <= maxDays) {
-        const age = nextBday.year - birthYear;
+        const age = birthYear ? nextBday.year - birthYear : undefined;
         const photoUrl = emp.photo_path ? imageService.getPhotoDataUrl(emp.photo_path) : null;
 
         upcomingList.push({

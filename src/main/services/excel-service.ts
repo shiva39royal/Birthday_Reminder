@@ -33,7 +33,7 @@ export class ExcelService {
     ws.columns = [
       { header: 'Sl.No', key: 'slNo', width: 10 },
       { header: 'Employee Name', key: 'name', width: 32 },
-      { header: 'Date of Birth (DD-MM-YYYY)', key: 'dob', width: 28 },
+      { header: 'Date of Birth (DD-MM)', key: 'dob', width: 28 },
       { header: 'Employee Photo (Insert > Pictures)', key: 'photo', width: 36 }
     ];
 
@@ -98,7 +98,7 @@ export class ExcelService {
         };
 
         if (col === 3) {
-          cell.numFmt = 'DD-MM-YYYY';
+          cell.numFmt = '@'; // Text format so DD-MM (e.g. 22-08) is preserved cleanly
         }
       }
     }
@@ -120,9 +120,9 @@ export class ExcelService {
       { text: '   • This field is mandatory.' },
       { text: '', isBlank: true },
       { text: '2. Date of Birth (Column C):', isHeader: true },
-      { text: '   • Enter the birth date in DD-MM-YYYY format (e.g., 15-05-1995).' },
-      { text: '   • Excel will automatically format it if entered as a standard date.' },
-      { text: '   • Future dates are invalid and will be rejected during import.' },
+      { text: '   • Enter the birth date in DD-MM format (e.g., 15-05).' },
+      { text: '   • Only date and month are required (no year needed).' },
+      { text: '   • Examples: 22-08 for 22 August, 09-12 for 9 December.' },
       { text: '', isBlank: true },
       { text: '3. Employee Photo (Column D):', isHeader: true },
       { text: '   • Click the cell in Column D for that employee.' },
@@ -424,22 +424,16 @@ export class ExcelService {
         errors.push('Employee name is required');
       }
 
-      // Validate DOB
+      // Validate DOB (DD-MM format, no year required)
       let formattedDob = '';
       if (!rawDob) {
         errors.push('Date of birth is required');
       } else {
         const parsedDate = this.parseDateString(rawDob);
         if (!parsedDate.valid) {
-          errors.push(parsedDate.error || 'Invalid date format (must be DD-MM-YYYY)');
+          errors.push(parsedDate.error || 'Invalid date format (must be DD-MM, e.g. 15-05)');
         } else {
           formattedDob = parsedDate.isoDate!;
-          // Validate not future date
-          const today = new Date();
-          const birthDate = new Date(formattedDob);
-          if (birthDate > today) {
-            errors.push('Date of birth cannot be in the future');
-          }
         }
       }
 
@@ -584,12 +578,12 @@ export class ExcelService {
   private extractDateValue(val: any): string | null {
     if (val === null || val === undefined) return null;
     if (val instanceof Date) {
-      return this.formatDateObjToIso(val);
+      return this.formatDateObjToDDMM(val);
     }
     if (typeof val === 'number') {
       // Excel serial date
       const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-      return this.formatDateObjToIso(date);
+      return this.formatDateObjToDDMM(date);
     }
     if (typeof val === 'string') {
       return val.trim();
@@ -600,46 +594,66 @@ export class ExcelService {
     return String(val).trim();
   }
 
-  private formatDateObjToIso(d: Date): string {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  private formatDateObjToDDMM(d: Date): string {
+    // If midnight UTC, use UTC date to avoid timezone shift
+    const day = d.getUTCHours() === 0 ? d.getUTCDate() : d.getDate();
+    const month = d.getUTCHours() === 0 ? d.getUTCMonth() + 1 : d.getMonth() + 1;
+    return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}`;
   }
 
   private parseDateString(str: string): { valid: boolean; isoDate?: string; error?: string } {
     const cleanStr = str.trim();
 
-    // Check ISO: YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanStr)) {
-      const [y, m, d] = cleanStr.split('-').map(Number);
-      if (this.isValidCalendarDate(y, m, d)) {
-        return { valid: true, isoDate: cleanStr };
+    // 1. Check DD-MM or DD/MM or DD.MM (e.g., 22-08, 09-12, 1-1, 01-01)
+    const dmMatch = cleanStr.match(/^(\d{1,2})[-/.](\d{1,2})$/);
+    if (dmMatch) {
+      const day = Number(dmMatch[1]);
+      const month = Number(dmMatch[2]);
+      if (this.isValidDayAndMonth(day, month)) {
+        return {
+          valid: true,
+          isoDate: `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}`
+        };
       }
+      return { valid: false, error: 'Invalid day or month (e.g., day must be 1-31, month 1-12)' };
     }
 
-    // Check DD-MM-YYYY or DD/MM/YYYY
+    // 2. Check DD-MM-YYYY or DD/MM/YYYY
     const dmyMatch = cleanStr.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
     if (dmyMatch) {
       const day = Number(dmyMatch[1]);
       const month = Number(dmyMatch[2]);
-      const year = Number(dmyMatch[3]);
-      if (this.isValidCalendarDate(year, month, day)) {
-        const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        return { valid: true, isoDate: iso };
+      if (this.isValidDayAndMonth(day, month)) {
+        return {
+          valid: true,
+          isoDate: `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}`
+        };
       }
-      return { valid: false, error: 'Invalid calendar day or month in date' };
+      return { valid: false, error: 'Invalid day or month in date' };
     }
 
-    return { valid: false, error: 'Unrecognized date format. Please use DD-MM-YYYY' };
+    // 3. Check ISO: YYYY-MM-DD
+    const isoMatch = cleanStr.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (isoMatch) {
+      const month = Number(isoMatch[2]);
+      const day = Number(isoMatch[3]);
+      if (this.isValidDayAndMonth(day, month)) {
+        return {
+          valid: true,
+          isoDate: `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}`
+        };
+      }
+      return { valid: false, error: 'Invalid day or month in date' };
+    }
+
+    return { valid: false, error: 'Unrecognized date format. Please use DD-MM (e.g. 22-08)' };
   }
 
-  private isValidCalendarDate(year: number, month: number, day: number): boolean {
-    if (year < 1900 || year > 2100) return false;
+  private isValidDayAndMonth(day: number, month: number): boolean {
     if (month < 1 || month > 12) return false;
     if (day < 1 || day > 31) return false;
-
-    const daysInMonth = new Date(year, month, 0).getDate();
-    return day <= daysInMonth;
+    // Allow up to 29 for February to support leap years
+    const maxDays = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return day <= maxDays[month - 1];
   }
 }

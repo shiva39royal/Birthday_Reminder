@@ -25,7 +25,8 @@ export const EmployeeBirthdays: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formName, setFormName] = useState('');
-  const [formDob, setFormDob] = useState('');
+  const [formDay, setFormDay] = useState('');
+  const [formMonth, setFormMonth] = useState('');
   const [formPhotoDataUrl, setFormPhotoDataUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +66,8 @@ export const EmployeeBirthdays: React.FC = () => {
   const handleOpenAddModal = () => {
     setEditingEmployee(null);
     setFormName('');
-    setFormDob('');
+    setFormDay('');
+    setFormMonth('');
     setFormPhotoDataUrl(null);
     setFormError('');
     setIsModalOpen(true);
@@ -74,7 +76,19 @@ export const EmployeeBirthdays: React.FC = () => {
   const handleOpenEditModal = (emp: Employee) => {
     setEditingEmployee(emp);
     setFormName(emp.employee_name);
-    setFormDob(emp.date_of_birth);
+    const parts = (emp.date_of_birth || '').split(/[-/.]/).map(Number);
+    if (parts.length === 2) {
+      setFormDay(String(parts[0]).padStart(2, '0'));
+      setFormMonth(String(parts[1]).padStart(2, '0'));
+    } else if (parts.length === 3) {
+      const d = parts[0] > 1000 ? parts[2] : parts[0];
+      const m = parts[1];
+      setFormDay(String(d).padStart(2, '0'));
+      setFormMonth(String(m).padStart(2, '0'));
+    } else {
+      setFormDay('');
+      setFormMonth('');
+    }
     setFormPhotoDataUrl(photoUrls[emp.id] || null);
     setFormError('');
     setIsModalOpen(true);
@@ -124,17 +138,20 @@ export const EmployeeBirthdays: React.FC = () => {
       setFormError('Employee name is mandatory');
       return;
     }
-    if (!formDob) {
-      setFormError('Date of birth is mandatory');
+    if (!formDay || !formMonth) {
+      setFormError('Please select both day and month for date of birth');
       return;
     }
 
-    const birthDate = new Date(formDob);
-    const today = new Date();
-    if (birthDate > today) {
-      setFormError('Date of birth cannot be in the future');
+    const dayNum = Number(formDay);
+    const monthNum = Number(formMonth);
+    const maxDays = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (dayNum > maxDays[monthNum - 1]) {
+      setFormError(`Selected month only has ${maxDays[monthNum - 1]} days`);
       return;
     }
+
+    const dobFormatted = `${String(dayNum).padStart(2, '0')}-${String(monthNum).padStart(2, '0')}`;
 
     try {
       setIsSubmitting(true);
@@ -143,13 +160,13 @@ export const EmployeeBirthdays: React.FC = () => {
       if (editingEmployee) {
         await window.birthdayBuddyAPI.updateEmployee(editingEmployee.id, {
           employee_name: formName.trim(),
-          date_of_birth: formDob,
+          date_of_birth: dobFormatted,
           photo_data_url: formPhotoDataUrl || undefined
         });
       } else {
         await window.birthdayBuddyAPI.createEmployee({
           employee_name: formName.trim(),
-          date_of_birth: formDob,
+          date_of_birth: dobFormatted,
           photo_data_url: formPhotoDataUrl || undefined
         });
       }
@@ -185,10 +202,17 @@ export const EmployeeBirthdays: React.FC = () => {
         : b.employee_name.localeCompare(a.employee_name);
     } else {
       // Sort by birthday month and day
-      const aParts = a.date_of_birth.split('-').map(Number);
-      const bParts = b.date_of_birth.split('-').map(Number);
-      const aScore = aParts[1] * 100 + aParts[2];
-      const bScore = bParts[1] * 100 + bParts[2];
+      const parseHelper = (dobStr: string) => {
+        const parts = (dobStr || '').split(/[-/.]/).map(Number);
+        if (parts.length === 2) return parts[1] * 100 + parts[0]; // month * 100 + day
+        if (parts.length === 3) {
+          if (parts[0] > 1000) return parts[1] * 100 + parts[2]; // YYYY-MM-DD
+          return parts[1] * 100 + parts[0]; // DD-MM-YYYY
+        }
+        return 0;
+      };
+      const aScore = parseHelper(a.date_of_birth);
+      const bScore = parseHelper(b.date_of_birth);
       return sortOrder === 'asc' ? aScore - bScore : bScore - aScore;
     }
   });
@@ -262,13 +286,24 @@ export const EmployeeBirthdays: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
                 {filtered.map(emp => {
-                  const [y, m, d] = emp.date_of_birth.split('-').map(Number);
-                  const bdayObj = new Date(y, m - 1, d);
-                  const formattedDob = bdayObj.toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  });
+                  const formatDobDisplay = (dobStr: string) => {
+                    if (!dobStr) return '-';
+                    const parts = dobStr.trim().split(/[-/.]/).map(Number);
+                    if (parts.length === 2) {
+                      const [day, month] = parts;
+                      const dt = new Date(2024, month - 1, day);
+                      const mStr = dt.toLocaleDateString('en-GB', { month: 'short' });
+                      return `${String(day).padStart(2, '0')} ${mStr}`;
+                    } else if (parts.length === 3) {
+                      const day = parts[0] > 1000 ? parts[2] : parts[0];
+                      const month = parts[1];
+                      const dt = new Date(2024, month - 1, day);
+                      const mStr = dt.toLocaleDateString('en-GB', { month: 'short' });
+                      return `${String(day).padStart(2, '0')} ${mStr}`;
+                    }
+                    return dobStr;
+                  };
+                  const formattedDob = formatDobDisplay(emp.date_of_birth);
 
                   return (
                     <tr key={emp.id} className="hover:bg-purple-50/40 transition-colors">
@@ -400,16 +435,57 @@ export const EmployeeBirthdays: React.FC = () => {
                 />
               </div>
 
-              {/* DOB */}
+              {/* DOB (Day and Month dropdowns - DD-MM) */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-gray-700">Date of Birth *</label>
-                <input
-                  type="date"
-                  required
-                  value={formDob}
-                  onChange={e => setFormDob(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
-                />
+                <label className="block text-xs font-bold text-gray-700">Date of Birth (DD-MM) *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <select
+                      required
+                      value={formDay}
+                      onChange={e => setFormDay(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                    >
+                      <option value="">Select Day</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
+                        const val = String(d).padStart(2, '0');
+                        return (
+                          <option key={val} value={val}>
+                            Day {val}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div>
+                    <select
+                      required
+                      value={formMonth}
+                      onChange={e => setFormMonth(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                    >
+                      <option value="">Select Month</option>
+                      {[
+                        { num: '01', name: 'January (01)' },
+                        { num: '02', name: 'February (02)' },
+                        { num: '03', name: 'March (03)' },
+                        { num: '04', name: 'April (04)' },
+                        { num: '05', name: 'May (05)' },
+                        { num: '06', name: 'June (06)' },
+                        { num: '07', name: 'July (07)' },
+                        { num: '08', name: 'August (08)' },
+                        { num: '09', name: 'September (09)' },
+                        { num: '10', name: 'October (10)' },
+                        { num: '11', name: 'November (11)' },
+                        { num: '12', name: 'December (12)' }
+                      ].map(m => (
+                        <option key={m.num} value={m.num}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               {/* Actions */}

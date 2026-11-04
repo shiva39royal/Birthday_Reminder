@@ -177,7 +177,7 @@ INSERT OR IGNORE INTO application_settings (
 1. **Worksheet 1**: `Employee Birthday Details`
    - **Column A**: `Sl.No` (Width: 10, Centered)
    - **Column B**: `Employee Name` (Width: 32, Left-aligned)
-   - **Column C**: `Date of Birth (DD-MM-YYYY)` (Width: 28, Centered, Number Format: `DD-MM-YYYY`)
+   - **Column C**: `Date of Birth (DD-MM)` (Width: 28, Centered, Number Format: `@` Text for clean DD-MM entry without year)
    - **Column D**: `Employee Photo (Insert > Pictures)` (Width: 36, Row Height: 50)
 2. **Serial Number & Formula Safety**:
    - To guarantee zero repair warnings (`Removed Records: Formula from /xl/worksheets/sheet1.xml part`) across all Microsoft Excel versions, pre-number `Sl.No` (Rows 2 to 101) with clean integer values:
@@ -186,7 +186,7 @@ INSERT OR IGNORE INTO application_settings (
      ```
    - Never inject dynamic relative formulas across unpopulated rows in templates, as Excel calculation engines flag empty string concatenation errors or OpenXML formula discrepancies. Clean sequential integers open instantly with 0 alerts.
 3. **Worksheet 2**: `Instructions`
-   - Detailed visual guide explaining how to enter names, dates (`DD-MM-YYYY`), and insert photos using either **"Place in Cell"** or **"Place over Cells"**.
+   - Detailed visual guide explaining how to enter names, dates in `DD-MM` format (e.g. `15-05`, no year required), and insert photos using either **"Place in Cell"** or **"Place over Cells"**.
 
 ### 5.2 Multi-Strategy Image Extractor
 To guarantee that employee photographs are never missed regardless of Excel version:

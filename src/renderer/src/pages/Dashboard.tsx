@@ -41,11 +41,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
     loadData();
   }, []);
 
-  const formatDateDisplay = (isoStr: string) => {
-    if (!isoStr) return '';
-    const [y, m, d] = isoStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const formatDateDisplay = (dobStr: string) => {
+    if (!dobStr) return '';
+    const parts = dobStr.trim().split(/[-/.]/).map(Number);
+    if (parts.length === 2) {
+      const [d, m] = parts;
+      const date = new Date(2024, m - 1, d);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+    if (parts.length === 3) {
+      const [y, m, d] = parts[0] > 1000 ? [parts[0], parts[1], parts[2]] : [parts[2], parts[1], parts[0]];
+      const date = new Date(y, m - 1, d);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+    return dobStr;
   };
 
   return (
@@ -145,7 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToEmployees, onN
                   </span>
                   <h3 className="text-xl font-black">{emp.employee_name}</h3>
                   <p className="text-purple-100 text-xs">
-                    Turning {emp.age} today • Born {formatDateDisplay(emp.date_of_birth)}
+                    {emp.age && emp.age > 0 ? `Turning ${emp.age} today • ` : ''}Birthday: {formatDateDisplay(emp.date_of_birth)}
                   </p>
                 </div>
               </div>
