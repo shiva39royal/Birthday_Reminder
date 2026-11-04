@@ -5,13 +5,14 @@ import { EmployeeBirthdays } from './pages/EmployeeBirthdays';
 import { ExcelImportExport } from './pages/ExcelImportExport';
 import { ReminderHistory } from './pages/ReminderHistory';
 import { Settings } from './pages/Settings';
+import { AppInfo } from '../../shared/types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [appVersion, setAppVersion] = useState('1.0.0');
 
   useEffect(() => {
-    window.birthdayBuddyAPI.getAppInfo().then(info => {
+    window.birthdayBuddyAPI.getAppInfo().then((info: AppInfo) => {
       if (info?.version) {
         setAppVersion(info.version);
       }

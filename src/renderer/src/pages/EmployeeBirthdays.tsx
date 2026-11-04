@@ -43,7 +43,7 @@ export const EmployeeBirthdays: React.FC = () => {
       // Load photos
       const urls: Record<string, string | null> = {};
       await Promise.all(
-        data.map(async emp => {
+        data.map(async (emp: Employee) => {
           if (emp.photo_path) {
             urls[emp.id] = await window.birthdayBuddyAPI.getPhotoDataUrl(emp.photo_path);
           } else {
